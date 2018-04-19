@@ -15,7 +15,9 @@ var schema = new Schema({
     balance: Number,
     amountWon: Number,
     amountLost: Number,
-    amountToPlay: Number
+    amountToPlay: Number,
+    username: String,
+    password: String
 });
 
 schema.plugin(deepPopulate, {});

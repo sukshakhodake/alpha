@@ -15,7 +15,7 @@
     "fs-jetpack": "^1.2.0",
     "google-cloud": "^0.57.0",
     "gridfs-stream": "^1.1.1",
-    "grunt": "^1.0.1",
+    "grunt": "^1.0.2",
     "grunt-concat-css": "^0.3.2",
     "grunt-concurrent": "^2.3.1",
     "grunt-contrib-clean": "^1.1.0",

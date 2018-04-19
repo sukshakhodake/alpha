@@ -1,0 +1,75 @@
+{
+    "title": "Bots",
+    "description": "List of Bots",
+    "pageType": "view",
+    "sendIdWithCreate": true,
+    "urlFields": ["_id"],
+    "fields": [{
+        "name": "Name",
+        "isSort": "",
+        "tableRef": "name"
+    }, {
+        "name": "Balance",
+        "isSort": "",
+        "tableRef": "balance"
+    }, {
+        "name": "Amount Won",
+        "isSort": "",
+        "tableRef": "amountWon"
+    }, {
+        "name": "Amount Lost",
+        "isSort": "",
+        "tableRef": "amountLost"
+    }, {
+        "name": "Amount Play",
+        "isSort": "",
+        "tableRef": "amountToPlay"
+    }],
+    "action": [{
+        "name": "edit",
+        "icon": "fa-pencil",
+        "buttonClass": "btn-primary",
+        "type": "page",
+        "action": "editBot",
+        "fieldsToSend": {
+            "_id": "_id"
+        }
+    }, {
+        "name": "delete",
+        "icon": "fa-trash",
+        "buttonClass": "btn-danger",
+        "type": "apiCallConfirm",
+        "title": "Delete Bot",
+        "content": "Are you sure you want to delete Bot?",
+        "api": "Bot/delete",
+        "fieldsToSend": {
+            "name": "_id",
+            "value": "_id"
+        }
+    }],
+    "button": [{
+        "name": "Excel Export",
+        "icon": "print",
+        "class": "btn-danger",
+        "type": "redirect",
+        "action": "Bot/generateExcel",
+        "linkType": "admin"
+    }, {
+        "name": "Upload Excel",
+        "icon": "delete",
+        "class": "btn-warning",
+        "type": "redirect",
+        "action": "excel-upload/Bot",
+        "linkType": "internal"
+    }, {
+        "name": "Create",
+        "icon": "plus",
+        "class": "btn-success",
+        "type": "page",
+        "action": "createBot"
+    }],
+    "apiCall": {
+        "url": "Bots/search",
+        "params": "_id"
+    }
+}
