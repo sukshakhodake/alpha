@@ -42,6 +42,6 @@
         }
     }],
     "apiCall": {
-        "url": "Bots/save"
+        "url": "Bots/checkUser"
     }
 }

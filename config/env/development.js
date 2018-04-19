@@ -22,5 +22,6 @@ module.exports = {
     // }
     port: 1337,
     realHost: "http://wohlig.io:1337",
-    emails: ["chintan@wohlig.com", "jagruti@wohlig.com", "tushar@wohlig.com", "chirag@wohlig.com", "harsh@wohlig.com","sohan@wohlig.com"]
+    emails: ["chintan@wohlig.com", "jagruti@wohlig.com", "tushar@wohlig.com", "chirag@wohlig.com", "harsh@wohlig.com", "sohan@wohlig.com"],
+    mainServer: "http://kingplay.online/api/",
 };

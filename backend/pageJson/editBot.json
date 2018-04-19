@@ -8,7 +8,7 @@
     "fields": [{
         "name": "User Name",
         "type": "text",
-        "tableRef": "name",
+        "tableRef": "username",
         "placeholder": "Enter User Name",
         "id": "name",
         "validation": ["", "trim", ""],
@@ -42,7 +42,7 @@
         }
     }],
     "apiCall": {
-        "url": "Bots/save",
+        "url": "Bots/checkUser",
         "params": "_id"
     },
     "preApi": {
