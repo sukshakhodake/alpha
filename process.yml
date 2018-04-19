@@ -1,0 +1,6 @@
+apps:
+  - script: "app.js"
+    name: "Node Framework - 80"
+    watch: false
+    args: "--prod"
+    exec_mode: "cluster"
