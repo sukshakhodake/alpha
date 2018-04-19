@@ -6,57 +6,21 @@
     "pageType": "edit",
     "urlFields": ["_id"],
     "fields": [{
-        "name": "Name",
+        "name": "User Name",
         "type": "text",
         "tableRef": "name",
-        "placeholder": "Enter Name",
+        "placeholder": "Enter User Name",
         "id": "name",
         "validation": ["", "trim", ""],
         "url": ""
     }, {
-        "name": "Balance",
-        "type": "number",
-        "tableRef": "balance",
-        "placeholder": "Enter balace",
-        "id": "balance",
-        "validation": ["", "trim", ""],
+        "name": "Password",
+        "type": "password",
+        "tableRef": "password",
+        "placeholder": "Enter password",
+        "id": "password",
+        "validation": ["", "trim", "unique"],
         "url": ""
-    }, {
-        "name": "Amount Won",
-        "type": "number",
-        "tableRef": "amountWon",
-        "placeholder": "Enter Amount Won",
-        "id": "dob",
-        "validation": ["", "trim", ""],
-        "url": ""
-    }, {
-        "name": "Amount Lost ",
-        "type": "number",
-        "tableRef": "amountLost",
-        "placeholder": "Enter Amount Lost",
-        "id": "dob",
-        "validation": ["", "trim", ""],
-        "url": ""
-    }, {
-        "name": "Amount To Play",
-        "type": "number",
-        "tableRef": "amountToPlay",
-        "placeholder": "Enter Amount To Play ",
-        "id": "dob",
-        "validation": ["", "trim", ""],
-        "url": ""
-    }, {
-        "name": "AccessLevel",
-        "type": "tags",
-        "tableRef": "accessLevel",
-        "placeholder": "Enter Title",
-        "id": "status",
-        "validation": ["", "trim", ""],
-        "url": "",
-        "dropDownField": "",
-        "dropDownType": "single",
-        "onView": true,
-        "dropDown": ["Bot", "Admin"]
     }],
     "action": [{
         "name": "submit",

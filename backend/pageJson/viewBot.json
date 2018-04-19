@@ -5,25 +5,17 @@
     "sendIdWithCreate": true,
     "urlFields": ["_id"],
     "fields": [{
-        "name": "Name",
+        "name": "Id",
         "isSort": "",
-        "tableRef": "name"
+        "tableRef": "id"
+    }, {
+        "name": "User Name",
+        "isSort": "",
+        "tableRef": "username"
     }, {
         "name": "Balance",
         "isSort": "",
         "tableRef": "balance"
-    }, {
-        "name": "Amount Won",
-        "isSort": "",
-        "tableRef": "amountWon"
-    }, {
-        "name": "Amount Lost",
-        "isSort": "",
-        "tableRef": "amountLost"
-    }, {
-        "name": "Amount Play",
-        "isSort": "",
-        "tableRef": "amountToPlay"
     }],
     "action": [{
         "name": "edit",
@@ -41,27 +33,13 @@
         "type": "apiCallConfirm",
         "title": "Delete Bot",
         "content": "Are you sure you want to delete Bot?",
-        "api": "Bot/delete",
+        "api": "Bots/delete",
         "fieldsToSend": {
             "name": "_id",
             "value": "_id"
         }
     }],
     "button": [{
-        "name": "Excel Export",
-        "icon": "print",
-        "class": "btn-danger",
-        "type": "redirect",
-        "action": "Bot/generateExcel",
-        "linkType": "admin"
-    }, {
-        "name": "Upload Excel",
-        "icon": "delete",
-        "class": "btn-warning",
-        "type": "redirect",
-        "action": "excel-upload/Bot",
-        "linkType": "internal"
-    }, {
         "name": "Create",
         "icon": "plus",
         "class": "btn-success",

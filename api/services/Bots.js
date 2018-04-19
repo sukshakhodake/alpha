@@ -1,5 +1,5 @@
+var cron = require('node-cron');
 var schema = new Schema({
-    name: String,
     id: String,
     accessToken: String,
     table: {
@@ -13,9 +13,6 @@ var schema = new Schema({
         index: true
     },
     balance: Number,
-    amountWon: Number,
-    amountLost: Number,
-    amountToPlay: Number,
     username: String,
     password: String
 });
@@ -27,4 +24,26 @@ module.exports = mongoose.model('Bots', schema);
 
 var exports = _.cloneDeep(require("sails-wohlig-service")(schema));
 var model = {};
+
+/**
+ *  cancel a order.
+ * 
+ *  @param  {String} id -   specific market symbol.
+ *  @returns  {callback} callback -   Return cancel order details.
+ */
+// cron.schedule('*/5 * * * *', function () {
+//     var options = {
+//         method: 'GET',
+//         url: "https://192.168.2.40/api/Table/filterTables"
+//     };
+//     request(options, function (err, response, body) {
+//         if (err) {
+//             console.log(err);
+//         } else {
+//             btcPrice = JSON.parse(body).last;
+//         }
+//         callback(err);
+//     });
+// });
+
 module.exports = _.assign(module.exports, exports, model);
