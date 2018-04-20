@@ -24,5 +24,5 @@ module.exports = {
     realHost: "http://wohlig.io:1337",
     emails: ["chintan@wohlig.com", "jagruti@wohlig.com", "tushar@wohlig.com", "chirag@wohlig.com", "harsh@wohlig.com", "sohan@wohlig.com"],
     mainServer: "http://kingplay.online/api/",
-    getTableDataApi: "http://192.168.1.108:1338/api/Table/filterTables"
+    testIp: "http://192.168.1.108:1338/api/"
 };

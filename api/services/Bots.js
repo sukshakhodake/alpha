@@ -1,4 +1,5 @@
 var cron = require('node-cron');
+var socket = require('socket.io-client')('http://192.168.1.108:1338');
 var schema = new Schema({
     id: String,
     accessToken: String,
@@ -102,7 +103,7 @@ var model = {
             // get the tables from the system
             function (callback) {
                 request.post({
-                    url: global["env"].getTableDataApi,
+                    url: global["env"].testIp + 'Table/filterTables',
                     body: dataToSend,
                     json: true
                 }, function (error, response, body) {
@@ -202,10 +203,28 @@ var model = {
                 function (tabData, callback) {
                     console.log("tabData", tabData);
                     console.log("botsData", botsData);
-                    botsData[0].table = tabData._id;
+                    botsData.table = tabData._id;
                     Bots.saveData(botsData, callback);
                 },
                 function (finalData, callback) {
+                    var accessToken = botsData.userData.accessToken[0];
+                    console.log("accessToken-", accessToken);
+                    console.log("global.socketId", global.socketId);
+                    if (!_.isEmpty(accessToken)) {
+                        request.post({
+                            url: global["env"].testIp + 'Table/addUserToTable',
+                            body: {
+                                playerNo: 5,
+                                tableId: data._id,
+                                socketId: socketId,
+                                accessToken: accessToken
+                            },
+                            json: true
+                        }).then(function (data) {
+                            console.log("data______-----", data);
+                            callback(data);
+                        });
+                    }
 
                 }
             ],
@@ -230,6 +249,21 @@ var model = {
                 }
             ],
             callback);
+    },
+
+    getAllTableInfo: function (data, callback) {
+        var dataToSend = {};
+        dataToSend.maxRow = 100;
+        dataToSend.filter = {
+            type: "public"
+        };
+        request.post({
+            url: global["env"].testIp + 'Table/filterTables',
+            body: dataToSend,
+            json: true
+        }, function (error, response, body) {
+            callback(error, body);
+        });
     }
 };
 /**
@@ -248,10 +282,8 @@ var model = {
 //     });
 // });
 
-var socket = require('socket.io-client')('http://192.168.1.108:1338');
 socket.on('connect', function () {
-    console.log("socket-", typeof (socket));
+    global.socketId = socket.io.engine.id;
 });
-
 
 module.exports = _.assign(module.exports, exports, model);
