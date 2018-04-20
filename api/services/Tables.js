@@ -6,8 +6,8 @@ var schema = new Schema({
     }],
     status: {
         type: String,
-        enum: ['', '', ''],
-        default: ""
+        enum: ['InUse', 'NotInUse'],
+        default: "NotInUse"
     },
     json: Schema.Types.Mixed,
     tableId: String

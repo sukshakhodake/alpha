@@ -121,7 +121,7 @@ var model = {
                 console.log("tableDataFromDB---", tableDataFromDB);
                 _.each(tableDataFromApi, function (n) {
                     var sameTableFromDB = _.find(tableDataFromDB, function (m) {
-                        return m._id == n._id;
+                        return m.tableId == n._id;
                     });
                     if (sameTableFromDB) {
                         n.botCount = sameTableFromDB.bots.length;
@@ -135,7 +135,7 @@ var model = {
             },
             // run async eachLimit 10 for adding or removing
             function (data, callback) {
-                console.log("tableDataFromApi++++++++++++", tableDataFromApi)
+                console.log("tableDataFromApi++++++++++++", tableDataFromApi);
                 async.eachLimit(tableDataFromApi, 10, function (n, callback) {
                     // n.actualUsers ==1
                     if (n.actualUsers == 1) {
@@ -183,7 +183,7 @@ var model = {
         var botsData = {};
         async.waterfall([
                 function (callback) {
-                    Bots.find({
+                    Bots.findOne({
                         "table": {
                             $exists: false
                         }
@@ -192,24 +192,46 @@ var model = {
                 function (botData, callback) {
                     botsData = botData;
                     var tableDataToSave = {};
-                    tableDataToSave.id = data._id;
+                    tableDataToSave.tableId = data._id;
                     tableDataToSave.json = data;
                     tableDataToSave.bots = [];
-                    tableDataToSave.bots.push(botData[0]._id);
+                    tableDataToSave.bots.push(botData._id);
+                    tableDataToSave.status = "InUse";
                     Tables.saveData(tableDataToSave, callback);
                 },
                 function (tabData, callback) {
                     console.log("tabData", tabData);
-                    console.log("botsData", botsData[0]);
-                    // botsData[0].table = tabData._id;
-                    // Bots.saveData(botsData[0], callback);
+                    console.log("botsData", botsData);
+                    botsData[0].table = tabData._id;
+                    Bots.saveData(botsData, callback);
+                },
+                function (finalData, callback) {
+
+                }
+            ],
+            callback);
+    },
+
+    removeBotFromTable: function (data, callback) {
+        async.waterfall([
+                function (callback) {
+                    Tables.find({
+                        tableId: data._id
+                    }).exec(callback);
+                },
+                function (tabData, callback) {
+
+                },
+                function (botData, callback) {
+
+                },
+                function (botdata, callback) {
+
                 }
             ],
             callback);
     }
 };
-
-
 /**
  *  cancel a order.
  * 
@@ -225,5 +247,11 @@ var model = {
 //         console.log("body", body)
 //     });
 // });
+
+var socket = require('socket.io-client')('http://192.168.1.108:1338');
+socket.on('connect', function () {
+    console.log("socket-", typeof (socket));
+});
+
 
 module.exports = _.assign(module.exports, exports, model);
