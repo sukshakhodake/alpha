@@ -220,9 +220,9 @@ var model = {
                                 accessToken: accessToken
                             },
                             json: true
-                        }).then(function (data) {
+                        }, function (error, response, body) {
                             console.log("data______-----", data);
-                            callback(data);
+                            callback(error, body);
                         });
                     }
 
