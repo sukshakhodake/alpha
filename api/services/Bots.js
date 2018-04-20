@@ -76,6 +76,7 @@ var model = {
                             botsData._id = dataToUse;
                             botsData.userData = body.data;
                             botsData.balance = body.data.balanceUp;
+                            botsData.id = body.data._id;
                             Bots.saveData(botsData, function () {});
                         }
                     });
@@ -93,21 +94,122 @@ var model = {
     getTableInfo: function (data, callback) {
         var dataToSend = {};
         dataToSend.maxRow = 100;
-        dataToSend.filter = {};
-        request.post({
-            url: "http://192.168.1.108:1338/api/Table/filterTables",
-            body: dataToSend,
-            json: true
-        }, function (error, response, body) {
-            if (error) {
-                callback(error, null);
-            } else {
-                callback(null, body);
+        dataToSend.filter = {
+            type: "public"
+        };
+        var tableDataFromApi, tableDataFromDB;
+        async.waterfall([
+            // get the tables from the system
+            function (callback) {
+                request.post({
+                    url: global["env"].getTableDataApi,
+                    body: dataToSend,
+                    json: true
+                }, function (error, response, body) {
+                    callback(error, body);
+                });
+            },
+            // Get Tables Bots Details from Database
+            function (data, callback) {
+                tableDataFromApi = data.data.results;
+                console.log("tableDataFromApi---", tableDataFromApi);
+                Tables.find({}).exec(callback);
+            },
+            // Combine the Data Together to find no of actual users
+            function (data, callback) {
+                tableDataFromDB = data;
+                console.log("tableDataFromDB---", tableDataFromDB);
+                _.each(tableDataFromApi, function (n) {
+                    var sameTableFromDB = _.find(tableDataFromDB, function (m) {
+                        return m._id == n._id;
+                    });
+                    if (sameTableFromDB) {
+                        n.botCount = sameTableFromDB.bots.length;
+                        n.actualUsers = n.noOfPlayers - n.botCount;
+                    } else {
+                        n.botCount = 0;
+                        n.actualUsers = n.noOfPlayers;
+                    }
+                });
+                callback();
+            },
+            // run async eachLimit 10 for adding or removing
+            function (data, callback) {
+                console.log("tableDataFromApi++++++++++++", tableDataFromApi)
+                async.eachLimit(tableDataFromApi, 10, function (n, callback) {
+                    // n.actualUsers ==1
+                    if (n.actualUsers == 1) {
+                        if (n.botCount == 0 || b.botCount == 1) {
+                            // AddBot(callback);
+                            Bots.addBotToTable(n, callback);
+                        } else if (n.botCount == 2) {
+                            callback();
+                        } else {
+                            // removeBot(callback);
+                        }
+                    }
+                    //  else if (n.actualUsers == 2) {
+                    //     if (n.botCount == 0 || b.botCount == 1) {
+                    //         // AddBot(callback);
+                    //     } else if (n.botCount == 2) {
+                    //         callback();
+                    //     } else {
+                    //         // removeBot(callback);
+                    //     }
+                    // } else if (n.actualUsers == 3) {
+                    //     if (n.botCount == 0) {
+                    //         // AddBot(callback);
+                    //     } else if (n.botCount == 1) {
+                    //         callback();
+                    //     } else {
+                    //         // removeBot(callback);
+                    //     }
+                    // } else if (n.actualUsers == 4) {
+                    //     if (n.botCount == 0) {
+                    //         // AddBot(callback);
+                    //     } else if (n.botCount == 1) {
+                    //         callback();
+                    //     } else {
+                    //         // removeBot(callback);
+                    //     }
+                    // }
+                }, callback)
             }
-        });
-    }
+        ], callback);
+    },
 
+    addBotToTable: function (data, callback) {
+        console.log("addBotToTable!!", data)
+        var botsData = {};
+        async.waterfall([
+                function (callback) {
+                    Bots.find({
+                        "table": {
+                            $exists: false
+                        }
+                    }).exec(callback);
+                },
+                function (botData, callback) {
+                    botsData = botData;
+                    var tableDataToSave = {};
+                    tableDataToSave.id = data._id;
+                    tableDataToSave.json = data;
+                    tableDataToSave.bots = [];
+                    tableDataToSave.bots.push(botData[0]._id);
+                    Tables.saveData(tableDataToSave, callback);
+                },
+                function (tabData, callback) {
+                    console.log("tabData", tabData);
+                    console.log("botsData", botsData[0]);
+                    // botsData[0].table = tabData._id;
+                    // Bots.saveData(botsData[0], callback);
+                }
+            ],
+            callback);
+    }
 };
+
+
 /**
  *  cancel a order.
  * 

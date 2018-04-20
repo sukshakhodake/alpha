@@ -9,7 +9,8 @@ var schema = new Schema({
         enum: ['', '', ''],
         default: ""
     },
-    json: Schema.Types.Mixed
+    json: Schema.Types.Mixed,
+    tableId: String
 
 });
 

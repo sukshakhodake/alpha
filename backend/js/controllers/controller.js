@@ -16,7 +16,6 @@ myApp.controller('DashboardCtrl', function ($scope, TemplateService, NavigationS
     })
 
     .controller('JagzCtrl', function ($scope, TemplateService, NavigationService, $timeout, $state, $interval) {
-
         function toColor(num, red) {
             num >>>= 0;
             var b = num & 0xFF,
