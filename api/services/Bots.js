@@ -1,5 +1,5 @@
 var cron = require('node-cron');
-var socket = require('socket.io-client')('http://192.168.1.108:1338');
+var socket = require('socket.io-client')('http://teenpatti.kingplay.online');
 var schema = new Schema({
     botId: String,
     accessToken: String,
@@ -177,7 +177,6 @@ var model = {
         ], callback);
     },
 
-
     /**
      *  add bot to tables
      * 
@@ -321,6 +320,7 @@ var model = {
             callback);
     },
 
+
     getAllTableInfo: function (data, callback) {
         var dataToSend = {};
         dataToSend.maxRow = 100;
@@ -334,6 +334,18 @@ var model = {
         }, function (error, response, body) {
             callback(error, body);
         });
+    },
+
+    updateSocketFunction: function (data, callback) {
+        console.log("updateSocketFunction--", data);
+    },
+
+    showWinnerFunction: function (data, callback) {
+        console.log("showWinnerFunction--", data);
+    },
+
+    sideShowSocket: function (data, callback) {
+        console.log("sideShowSocket--", data);
     }
 };
 
@@ -356,5 +368,12 @@ var model = {
 socket.on('connect', function () {
     global.socketId = socket.io.engine.id;
 });
+
+socket.on("Update", model.updateSocketFunction);
+
+socket.on("showWinner", model.showWinnerFunction);
+
+socket.on("sideShow", model.sideShowSocket);
+
 
 module.exports = _.assign(module.exports, exports, model);
