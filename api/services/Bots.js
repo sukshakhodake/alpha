@@ -1,5 +1,4 @@
 var cron = require('node-cron');
-var socket = require('socket.io-client')('http://teenpatti.kingplay.online');
 var schema = new Schema({
     botId: String,
     accessToken: String,
@@ -16,6 +15,9 @@ var schema = new Schema({
     balance: Number,
     username: String,
     password: String,
+    blindCount: Number,
+    seenCount: Number,
+    tableType: String,
     userData: Schema.Types.Mixed
 
 });
@@ -77,7 +79,8 @@ var model = {
                             botsData._id = dataToUse;
                             botsData.userData = body.data;
                             botsData.balance = body.data.creditLimit;
-                            botsData.botId = body.data.accessToken[0];
+                            botsData.botId = body.data._id;
+                            botsData.accessToken = body.data.accessToken[0];
                             Bots.saveData(botsData, function () {});
                         }
                     });
@@ -198,7 +201,7 @@ var model = {
                 //add bot to LocalsystmsDbTable
                 function (botData, callback) {
                     botsData = botData;
-                    accessToken = botsData.userData.accessToken[0];
+                    accessToken = botData.accessToken;
                     var tableDataToSave = {};
                     tableDataToSave.tableId = data._id;
                     tableDataToSave.json = data;
@@ -290,7 +293,7 @@ var model = {
                             url: global["env"].testIp + 'Player/deletePlayer',
                             body: {
                                 tableId: tabData.tableId,
-                                accessToken: n.botId
+                                accessToken: n.accessToken
                             },
                             json: true
                         }, function (error, response, body) {
@@ -320,6 +323,300 @@ var model = {
             callback);
     },
 
+    updateSocketFunction: function (data, callback) {
+        console.log("updateSocketFunction--", data);
+        // console.log("players:--", data.data.players);
+        Bots.botGamePlay(data.data, callback);
+
+    },
+
+    botGamePlay: function (data, callback) {
+        if (data.extra.serve || data.extra.newGame) {} else {
+            console.log("44444444444444", data);
+            async.waterfall([
+                    function (callback) {
+                        Bots.find({}, callback);
+                    },
+                    function (botsData, callback) {
+                        console.log("botsData", data.players);
+                        var blindStatus = _.find(data.players, function (m) {
+                            return m.isBlind == false;
+                        });
+
+                        console.log("blindStatus", blindStatus);
+
+                        var blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
+                        async.eachSeries(data.players, function (n, callback) {
+                            var existingBot = _.find(botsData, function (m) {
+                                return m._id == n._id;
+                            });
+                            console.log("existingBot", existingBot);
+                            callback()
+                            // if (existingBot) {
+                            //     if (_.isEmpty(blindStatus)) {
+                            //         if (blindCount > 0) {
+                            //             request.post({
+                            //                 url: global["env"].testIp + 'Player/chaal',
+                            //                 body: {
+                            //                     tableId: existingBot.table,
+                            //                     accessToken: existingBot.accessToken,
+                            //                     amount: data.minAmt
+                            //                 },
+                            //                 json: true
+                            //             }, function (error, response, body) {
+                            //                 blindCount--;
+                            //                 callback(error, body);
+                            //             });
+                            //         } else {
+                            //             request.post({
+                            //                 url: global["env"].testIp + 'Player/makeSeen',
+                            //                 body: {
+                            //                     tableId: existingBot.table,
+                            //                     accessToken: existingBot.accessToken,
+                            //                 },
+                            //                 json: true
+                            //             }, function (error, response, body) {
+                            //                 callback(error, body);
+                            //             });
+                            //         }
+                            //     } else {
+                            //         if (_.isEmpty(existingBot.cards)) {
+                            //             request.post({
+                            //                 url: global["env"].testIp + 'Player/makeSeen',
+                            //                 body: {
+                            //                     tableId: existingBot.table,
+                            //                     accessToken: existingBot.accessToken,
+                            //                 },
+                            //                 json: true
+                            //             }, function (error, response, body) {
+                            //                 callback(error, body);
+                            //             });
+                            //         } else {
+                            //             var dataToCheckCards = {};
+                            //             if (data.gameType.evaluateFunc == 'scoreHandsNormal') {
+                            //                 dataToCheckCards.type = 'scoreHandsNormal';
+                            //                 dataToCheckCards.botData = existingBot;
+                            //                 dataToCheckCards.minAmt = data.minAmt;
+                            //                 dataToCheckCards.maxAmt = data.maxAmt;
+                            //                 Bots.checkCards(dataToCheckCards, callback);
+                            //             } else if (data.gameType.evaluateFunc == 'scoreHandsTwo') {
+                            //                 dataToCheckCards.type = 'scoreHandsTwo';
+                            //                 dataToCheckCards.botData = existingBot;
+                            //                 dataToCheckCards.minAmt = data.minAmt;
+                            //                 dataToCheckCards.maxAmt = data.maxAmt;
+                            //                 Bots.checkCards(dataToCheckCards, callback);
+                            //             } else if (data.gameType.evaluateFunc == 'scoreHandsFour') {
+                            //                 dataToCheckCards.type = 'scoreHandsFour';
+                            //                 dataToCheckCards.botData = existingBot;
+                            //                 dataToCheckCards.minAmt = data.minAmt;
+                            //                 dataToCheckCards.maxAmt = data.maxAmt;
+                            //                 Bots.checkCards(dataToCheckCards, callback);
+                            //             } else if (data.gameType.evaluateFunc == 'scoreHandsLowest') {
+                            //                 dataToCheckCards.type = 'scoreHandsLowest';
+                            //                 dataToCheckCards.botData = existingBot;
+                            //                 dataToCheckCards.minAmt = data.minAmt;
+                            //                 dataToCheckCards.maxAmt = data.maxAmt;
+                            //                 Bots.checkCards(dataToCheckCards, callback);
+                            //             } else if (data.gameType.evaluateFunc == 'scoreHandsJoker') {
+                            //                 dataToCheckCards.type = 'scoreHandsJoker';
+                            //                 dataToCheckCards.botData = existingBot;
+                            //                 dataToCheckCards.minAmt = data.minAmt;
+                            //                 dataToCheckCards.maxAmt = data.maxAmt;
+                            //                 Bots.checkCards(dataToCheckCards, callback);
+                            //             }
+                            //         }
+                            //     }
+                            // }
+                        }, callback);
+                    }
+                ],
+                callback);
+        }
+    },
+
+    checkCards: function (data, callback) {
+        var type = data.type;
+        var handNormal = teenPattiScore.type(data.botData.cards);
+        if (handNormal.name == 'Trio') {
+            chalCount = 100;
+            if (chalCount > 0) {
+                request.post({
+                    url: global["env"].testIp + 'Player/chaal',
+                    body: {
+                        tableId: existingBot.table,
+                        accessToken: existingBot.accessToken,
+                        amount: data.data.maxAmt
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    chalCount--;
+                    callback(error, body);
+                });
+            } else {
+                request.post({
+                    url: global["env"].testIp + 'Player/showWinner',
+                    body: {
+                        tableId: existingBot.table,
+                        accessToken: existingBot.accessToken,
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    callback(error, body);
+                });
+            }
+        } else if (handNormal.name == 'Pure Sequence') {
+            chalCount = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
+            if (chalCount > 0) {
+                request.post({
+                    url: global["env"].testIp + 'Player/chaal',
+                    body: {
+                        tableId: existingBot.table,
+                        accessToken: existingBot.accessToken,
+                        amount: data.data.maxAmt
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    chalCount--;
+                    callback(error, body);
+                });
+            } else {
+                request.post({
+                    url: global["env"].testIp + 'Player/showWinner',
+                    body: {
+                        tableId: existingBot.table,
+                        accessToken: existingBot.accessToken,
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    callback(error, body);
+                });
+            }
+
+        } else if (handNormal.name == 'Sequence') {
+            chalCount = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
+            if (chalCount > 0) {
+                request.post({
+                    url: global["env"].testIp + 'Player/chaal',
+                    body: {
+                        tableId: existingBot.table,
+                        accessToken: existingBot.accessToken,
+                        amount: data.data.maxAmt
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    chalCount--;
+                    callback(error, body);
+                });
+            } else {
+                request.post({
+                    url: global["env"].testIp + 'Player/showWinner',
+                    body: {
+                        tableId: existingBot.table,
+                        accessToken: existingBot.accessToken,
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    callback(error, body);
+                });
+            }
+
+        } else if (handNormal.name == 'Colour') {
+            chalCount = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
+            if (chalCount > 0) {
+                request.post({
+                    url: global["env"].testIp + 'Player/chaal',
+                    body: {
+                        tableId: existingBot.table,
+                        accessToken: existingBot.accessToken,
+                        amount: data.data.maxAmt
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    chalCount--;
+                    callback(error, body);
+                });
+            } else {
+                request.post({
+                    url: global["env"].testIp + 'Player/showWinner',
+                    body: {
+                        tableId: existingBot.table,
+                        accessToken: existingBot.accessToken,
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    callback(error, body);
+                });
+            }
+
+        } else if (handNormal.name == 'Pair') {
+            chalCount = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
+            if (chalCount > 0) {
+                request.post({
+                    url: global["env"].testIp + 'Player/chaal',
+                    body: {
+                        tableId: existingBot.table,
+                        accessToken: existingBot.accessToken,
+                        amount: data.data.maxAmt
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    chalCount--;
+                    callback(error, body);
+                });
+            } else {
+                request.post({
+                    url: global["env"].testIp + 'Player/showWinner',
+                    body: {
+                        tableId: existingBot.table,
+                        accessToken: existingBot.accessToken,
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    callback(error, body);
+                });
+            }
+
+        } else if (handNormal.name == 'High Card') {
+            chalCount = Math.floor(Math.random() * (1 - 0 + 1)) + 1;
+            if (chalCount > 0) {
+                request.post({
+                    url: global["env"].testIp + 'Player/chaal',
+                    body: {
+                        tableId: existingBot.table,
+                        accessToken: existingBot.accessToken,
+                        amount: data.data.maxAmt
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    chalCount--;
+                    callback(error, body);
+                });
+            } else {
+                request.post({
+                    url: global["env"].testIp + 'Player/showWinner',
+                    body: {
+                        tableId: existingBot.table,
+                        accessToken: existingBot.accessToken,
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    callback(error, body);
+                });
+            }
+
+        } else {
+            request.post({
+                url: global["env"].testIp + 'Player/fold',
+                body: {
+                    tableId: existingBot.table,
+                    accessToken: existingBot.accessToken,
+                },
+                json: true
+            }, function (error, response, body) {
+                callback(error, body);
+            });
+        }
+    },
 
     getAllTableInfo: function (data, callback) {
         var dataToSend = {};
@@ -334,10 +631,6 @@ var model = {
         }, function (error, response, body) {
             callback(error, body);
         });
-    },
-
-    updateSocketFunction: function (data, callback) {
-        console.log("updateSocketFunction--", data);
     },
 
     showWinnerFunction: function (data, callback) {

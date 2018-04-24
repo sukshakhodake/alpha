@@ -71,6 +71,8 @@ mongoose.connect(mongourl, {
     useMongoClient: true
 }, function (err, db) {});
 global.socketId;
+global.socket = require('socket.io-client')('http://teenpatti.kingplay.online');
+
 
 
 // Mongoose Globals

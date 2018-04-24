@@ -70,7 +70,8 @@
     "sails-wohlig-service": "^0.0.11",
     "sendgrid": "^5.2.3",
     "skipper-gclouds": "^1.0.1",
-    "socket.io-client": "^2.1.0"
+    "socket.io-client": "^2.1.0",
+    "teenpattisolver": "^1.1.3"
   },
   "scripts": {
     "debug": "node debug app.js",
