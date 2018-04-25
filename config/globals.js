@@ -72,6 +72,9 @@ mongoose.connect(mongourl, {
 }, function (err, db) {});
 global.socketId;
 global.socket = require('socket.io-client')('http://teenpatti.kingplay.online');
+global.teenPattiScore = require("teenpattisolver");
+global.blindCount = 2;
+global.chalCount = 2;
 
 
 
