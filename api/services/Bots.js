@@ -390,7 +390,7 @@ var model = {
                                                     console.log("body>>>>>>>--", body);
                                                     callback(error, body);
                                                 });
-                                            }, 1000);
+                                            }, 2000);
                                         } else {
                                             request.post({
                                                 url: global["env"].testIp + 'Player/makeSeen',
@@ -404,7 +404,7 @@ var model = {
                                             });
                                         }
                                     } else {
-                                        console.log("existingBotInSocket@@@@@@@@@@@@", existingBotInSocket);
+                                        // console.log("existingBotInSocket@@@@@@@@@@@@", existingBotInSocket);
                                         if (existingBotInSocket.isBlind == true) {
                                             request.post({
                                                 url: global["env"].testIp + 'Player/makeSeen',
@@ -475,7 +475,7 @@ var model = {
      *  @returns  {callback} callback -   Return card data.
      */
     checkCards: function (data, callback) {
-        // console.log("data--", data)
+        console.log("data--", data)
         if (data.handNormal.name == 'Trio') {
             if (chalCount > 0) {
                 setTimeout(function () {
@@ -491,7 +491,7 @@ var model = {
                         chalCount--;
                         callback(error, body);
                     });
-                }, 1000);
+                }, 2000);
             } else {
                 request.post({
                     url: global["env"].testIp + 'Player/showWinner',
@@ -523,7 +523,7 @@ var model = {
                         console.log("chalCountPS", chalCountPS);
                         callback(error, body);
                     });
-                }, 1000);
+                }, 2000);
             } else {
                 request.post({
                     url: global["env"].testIp + 'Player/showWinner',
@@ -554,7 +554,7 @@ var model = {
                         console.log("chalCountS", chalCountS);
                         callback(error, body);
                     });
-                }, 1000);
+                }, 2000);
             } else {
                 request.post({
                     url: global["env"].testIp + 'Player/showWinner',
@@ -585,7 +585,7 @@ var model = {
                         console.log("chalCountC", chalCountC);
                         callback(error, body);
                     });
-                }, 1000);
+                }, 2000);
             } else {
                 request.post({
                     url: global["env"].testIp + 'Player/showWinner',
@@ -616,7 +616,7 @@ var model = {
                         console.log("chalCountP", chalCountP);
                         callback(error, body);
                     });
-                }, 1000);
+                }, 2000);
             } else {
                 request.post({
                     url: global["env"].testIp + 'Player/showWinner',
@@ -647,7 +647,7 @@ var model = {
                         console.log("chalCountHC", chalCountHC);
                         callback(error, body);
                     });
-                }, 1000);
+                }, 2000);
             } else {
                 request.post({
                     url: global["env"].testIp + 'Player/fold',
