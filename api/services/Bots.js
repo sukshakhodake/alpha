@@ -96,6 +96,7 @@ var model = {
      *  @returns  {callback} callback -   Return table Data.
      */
     getTableInfo: function (data, callback) {
+        console.log("----")
         var dataToSend = {};
         dataToSend.maxRow = 100;
         dataToSend.filter = {
@@ -143,7 +144,7 @@ var model = {
                 async.eachLimit(tableDataFromApi, 10, function (n, callback) {
                     // n.actualUsers ==1
                     if (n.actualUsers == 1) {
-                        if (n.botCount == 0 || b.botCount == 1) {
+                        if (n.botCount == 0 || n.botCount == 1) {
                             Bots.addBotToTable(n, callback);
                         } else if (n.botCount == 2) {
                             callback();
@@ -151,7 +152,7 @@ var model = {
                             Bots.removeBotFromTable(n, callback);
                         }
                     } else if (n.actualUsers == 2) {
-                        if (n.botCount == 0 || b.botCount == 1) {
+                        if (n.botCount == 0 || n.botCount == 1) {
                             Bots.addBotToTable(n, callback);
                         } else if (n.botCount == 2) {
                             callback();
@@ -201,14 +202,17 @@ var model = {
                 //add bot to LocalsystmsDbTable
                 function (botData, callback) {
                     botsData = botData;
-                    accessToken = botData.accessToken;
-                    var tableDataToSave = {};
-                    tableDataToSave.tableId = data._id;
-                    tableDataToSave.json = data;
-                    tableDataToSave.bots = [];
-                    tableDataToSave.bots.push(botData._id);
-                    tableDataToSave.status = "InUse";
-                    Tables.saveData(tableDataToSave, callback);
+                    if (botData) {
+                        accessToken = botData.accessToken;
+                        var tableDataToSave = {};
+                        tableDataToSave.tableId = data._id;
+                        tableDataToSave.json = data;
+                        tableDataToSave.bots = [];
+                        tableDataToSave.bots.push(botData._id);
+                        tableDataToSave.status = "InUse";
+                        Tables.saveData(tableDataToSave, callback);
+
+                    }
                 },
                 //save tableId to respective bot
                 function (tabData, callback) {
@@ -323,11 +327,22 @@ var model = {
             callback);
     },
 
-
+    /**
+     *  socket function
+     * 
+     *  @returns  {callback} callback -   Return socket Data.
+     */
     updateSocketFunction: function (data, callback) {
         Bots.botGamePlay(data.data, callback);
     },
 
+
+    /**
+     *  bot gameplay 
+     * 
+     *  @param  {String} socket data -   socket data.     
+     *  @returns  {callback} callback -   Return game data.
+     */
     botGamePlay: function (data, callback) {
         if (data.extra.serve || data.extra.newGame) {
             blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
@@ -453,6 +468,12 @@ var model = {
         }
     },
 
+    /**
+     *  match cards types
+     * 
+     *  @param  {String} bot  data -   bot gameplay data.     
+     *  @returns  {callback} callback -   Return card data.
+     */
     checkCards: function (data, callback) {
         console.log("data--", data)
         if (data.handNormal.name == 'Trio') {
@@ -538,7 +559,7 @@ var model = {
                     callback(error, body);
                 });
             }
-        } else if (data.handNormal.name == 'Colour') {
+        } else if (data.handNormal.name == 'Color') {
             // chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
             if (chalCountC > 0) {
                 request.post({
@@ -640,6 +661,7 @@ var model = {
         });
     },
 
+    //socket
     showWinnerFunction: function (data, callback) {
         console.log("showWinnerFunction--", data);
     },
@@ -655,15 +677,10 @@ var model = {
  *  @param  {String} id -   specific market symbol.
  *  @returns  {callback} callback -   Return cancel order details.
  */
-// cron.schedule('*/5 * * * *', function () {
-//     var options = {
-//         method: 'GET',
-//         url: "https://192.168.2.40/api/Table/filterTables"
-//     };
-//     request(options, function (err, response, body) {
-//         console.log("body", body)
-//     });
-// });
+cron.schedule('*/5 * * * * *', function () {
+    console.log("----------");
+    model.getTableInfo();
+});
 
 socket.on('connect', function () {
     global.socketId = socket.io.engine.id;
