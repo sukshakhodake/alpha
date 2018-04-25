@@ -96,7 +96,6 @@ var model = {
      *  @returns  {callback} callback -   Return table Data.
      */
     getTableInfo: function (data, callback) {
-        console.log("----")
         var dataToSend = {};
         dataToSend.maxRow = 100;
         dataToSend.filter = {
@@ -211,7 +210,6 @@ var model = {
                         tableDataToSave.bots.push(botData._id);
                         tableDataToSave.status = "InUse";
                         Tables.saveData(tableDataToSave, callback);
-
                     }
                 },
                 //save tableId to respective bot
@@ -351,7 +349,7 @@ var model = {
             chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
             chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
             chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
-            chalCountHC = Math.floor(Math.random() * (1 - 0 + 1)) + 1;
+            chalCountHC = 1;
         } else {
             async.waterfall([
                     function (callback) {
@@ -372,25 +370,27 @@ var model = {
                                     return m.memberId == existingBot.botId;
                                 });
                                 if (existingBotInSocket.isTurn == true) {
-                                    console.log("existingBotInSocket", existingBotInSocket);
+                                    // console.log("existingBotInSocket", existingBotInSocket);
                                     // var blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
                                     console.log("blindCount", blindCount);
                                     if (_.isEmpty(blindStatus)) {
                                         if (blindCount > 0) {
-                                            request.post({
-                                                url: global["env"].testIp + 'Player/chaal',
-                                                body: {
-                                                    tableId: existingBotInSocket.table,
-                                                    accessToken: existingBot.accessToken,
-                                                    amount: data.minAmt
-                                                },
-                                                json: true
-                                            }, function (error, response, body) {
-                                                blindCount--;
-                                                console.log("blindCount", blindCount);
-                                                console.log("body>>>>>>>--", body);
-                                                callback(error, body);
-                                            });
+                                            setTimeout(function () {
+                                                request.post({
+                                                    url: global["env"].testIp + 'Player/chaal',
+                                                    body: {
+                                                        tableId: existingBotInSocket.table,
+                                                        accessToken: existingBot.accessToken,
+                                                        amount: data.minAmt
+                                                    },
+                                                    json: true
+                                                }, function (error, response, body) {
+                                                    blindCount--;
+                                                    console.log("blindCount", blindCount);
+                                                    console.log("body>>>>>>>--", body);
+                                                    callback(error, body);
+                                                });
+                                            }, 1000);
                                         } else {
                                             request.post({
                                                 url: global["env"].testIp + 'Player/makeSeen',
@@ -475,21 +475,23 @@ var model = {
      *  @returns  {callback} callback -   Return card data.
      */
     checkCards: function (data, callback) {
-        console.log("data--", data)
+        // console.log("data--", data)
         if (data.handNormal.name == 'Trio') {
             if (chalCount > 0) {
-                request.post({
-                    url: global["env"].testIp + 'Player/chaal',
-                    body: {
-                        tableId: data.botData.table,
-                        accessToken: data.accessToken,
-                        amount: data.maxAmt
-                    },
-                    json: true
-                }, function (error, response, body) {
-                    chalCount--;
-                    callback(error, body);
-                });
+                setTimeout(function () {
+                    request.post({
+                        url: global["env"].testIp + 'Player/chaal',
+                        body: {
+                            tableId: data.botData.table,
+                            accessToken: data.accessToken,
+                            amount: data.maxAmt
+                        },
+                        json: true
+                    }, function (error, response, body) {
+                        chalCount--;
+                        callback(error, body);
+                    });
+                }, 1000);
             } else {
                 request.post({
                     url: global["env"].testIp + 'Player/showWinner',
@@ -500,24 +502,28 @@ var model = {
                     json: true
                 }, function (error, response, body) {
                     chalCount = 50;
+                    console.log("chalCount", chalCount);
                     callback(error, body);
                 });
             }
         } else if (data.handNormal.name == 'Pure Sequence') {
             // chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
             if (chalCountPS > 0) {
-                request.post({
-                    url: global["env"].testIp + 'Player/chaal',
-                    body: {
-                        tableId: data.botData.table,
-                        accessToken: data.accessToken,
-                        amount: data.maxAmt
-                    },
-                    json: true
-                }, function (error, response, body) {
-                    chalCountPS--;
-                    callback(error, body);
-                });
+                setTimeout(function () {
+                    request.post({
+                        url: global["env"].testIp + 'Player/chaal',
+                        body: {
+                            tableId: data.botData.table,
+                            accessToken: data.accessToken,
+                            amount: data.maxAmt
+                        },
+                        json: true
+                    }, function (error, response, body) {
+                        chalCountPS--;
+                        console.log("chalCountPS", chalCountPS);
+                        callback(error, body);
+                    });
+                }, 1000);
             } else {
                 request.post({
                     url: global["env"].testIp + 'Player/showWinner',
@@ -534,18 +540,21 @@ var model = {
         } else if (data.handNormal.name == 'Sequence') {
             // chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
             if (chalCountS > 0) {
-                request.post({
-                    url: global["env"].testIp + 'Player/chaal',
-                    body: {
-                        tableId: data.botData.table,
-                        accessToken: data.accessToken,
-                        amount: data.maxAmt
-                    },
-                    json: true
-                }, function (error, response, body) {
-                    chalCountS--;
-                    callback(error, body);
-                });
+                setTimeout(function () {
+                    request.post({
+                        url: global["env"].testIp + 'Player/chaal',
+                        body: {
+                            tableId: data.botData.table,
+                            accessToken: data.accessToken,
+                            amount: data.maxAmt
+                        },
+                        json: true
+                    }, function (error, response, body) {
+                        chalCountS--;
+                        console.log("chalCountS", chalCountS);
+                        callback(error, body);
+                    });
+                }, 1000);
             } else {
                 request.post({
                     url: global["env"].testIp + 'Player/showWinner',
@@ -562,18 +571,21 @@ var model = {
         } else if (data.handNormal.name == 'Color') {
             // chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
             if (chalCountC > 0) {
-                request.post({
-                    url: global["env"].testIp + 'Player/chaal',
-                    body: {
-                        tableId: data.botData.table,
-                        accessToken: data.accessToken,
-                        amount: data.maxAmt
-                    },
-                    json: true
-                }, function (error, response, body) {
-                    chalCountC--;
-                    callback(error, body);
-                });
+                setTimeout(function () {
+                    request.post({
+                        url: global["env"].testIp + 'Player/chaal',
+                        body: {
+                            tableId: data.botData.table,
+                            accessToken: data.accessToken,
+                            amount: data.maxAmt
+                        },
+                        json: true
+                    }, function (error, response, body) {
+                        chalCountC--;
+                        console.log("chalCountC", chalCountC);
+                        callback(error, body);
+                    });
+                }, 1000);
             } else {
                 request.post({
                     url: global["env"].testIp + 'Player/showWinner',
@@ -590,18 +602,21 @@ var model = {
         } else if (data.handNormal.name == 'Pair') {
             // chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
             if (chalCountP > 0) {
-                request.post({
-                    url: global["env"].testIp + 'Player/chaal',
-                    body: {
-                        tableId: data.botData.table,
-                        accessToken: data.accessToken,
-                        amount: data.maxAmt
-                    },
-                    json: true
-                }, function (error, response, body) {
-                    chalCountP--;
-                    callback(error, body);
-                });
+                setTimeout(function () {
+                    request.post({
+                        url: global["env"].testIp + 'Player/chaal',
+                        body: {
+                            tableId: data.botData.table,
+                            accessToken: data.accessToken,
+                            amount: data.maxAmt
+                        },
+                        json: true
+                    }, function (error, response, body) {
+                        chalCountP--;
+                        console.log("chalCountP", chalCountP);
+                        callback(error, body);
+                    });
+                }, 1000);
             } else {
                 request.post({
                     url: global["env"].testIp + 'Player/showWinner',
@@ -618,18 +633,21 @@ var model = {
         } else if (data.handNormal.name == 'High Card') {
             // chalCountHC = Math.floor(Math.random() * (1 - 0 + 1)) + 1;
             if (chalCountHC > 0) {
-                request.post({
-                    url: global["env"].testIp + 'Player/chaal',
-                    body: {
-                        tableId: data.botData.table,
-                        accessToken: data.accessToken,
-                        amount: data.maxAmt
-                    },
-                    json: true
-                }, function (error, response, body) {
-                    chalCountHC--;
-                    callback(error, body);
-                });
+                setTimeout(function () {
+                    request.post({
+                        url: global["env"].testIp + 'Player/chaal',
+                        body: {
+                            tableId: data.botData.table,
+                            accessToken: data.accessToken,
+                            amount: data.maxAmt
+                        },
+                        json: true
+                    }, function (error, response, body) {
+                        chalCountHC--;
+                        console.log("chalCountHC", chalCountHC);
+                        callback(error, body);
+                    });
+                }, 1000);
             } else {
                 request.post({
                     url: global["env"].testIp + 'Player/fold',
@@ -639,7 +657,7 @@ var model = {
                     },
                     json: true
                 }, function (error, response, body) {
-                    chalCountHC = Math.floor(Math.random() * (1 - 0 + 1)) + 1;
+                    chalCountHC = 1;
                     callback(error, body);
                 });
             }
@@ -678,7 +696,6 @@ var model = {
  *  @returns  {callback} callback -   Return cancel order details.
  */
 cron.schedule('*/5 * * * * *', function () {
-    console.log("----------");
     model.getTableInfo();
 });
 
