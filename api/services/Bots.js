@@ -323,28 +323,21 @@ var model = {
             callback);
     },
 
+
     updateSocketFunction: function (data, callback) {
-        // console.log("updateSocketFunction--", data);
-        // console.log("players:--", data.data.players);
         Bots.botGamePlay(data.data, callback);
-
-    },
-
-    showWinnerOfGame: function (data, callback) {
-        request.post({
-            url: global["env"].testIp + 'Player/showWinner',
-            body: {
-                tableId: existingBot.table,
-                accessToken: existingBot.accessToken,
-            },
-            json: true
-        }, function (error, response, body) {
-            callback(error, body);
-        });
     },
 
     botGamePlay: function (data, callback) {
-        if (data.extra.serve || data.extra.newGame) {} else {
+        if (data.extra.serve || data.extra.newGame) {
+            blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
+            chalCount = 50;
+            chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
+            chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
+            chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
+            chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
+            chalCountHC = Math.floor(Math.random() * (1 - 0 + 1)) + 1;
+        } else {
             async.waterfall([
                     function (callback) {
                         Bots.find({}, callback);
@@ -355,14 +348,10 @@ var model = {
                         var blindStatus = _.find(data.players, function (m) {
                             return m.isBlind == false;
                         });
-                        // console.log("blindStatus", blindStatus);
-                        // console.log("data.players", data.players);
                         async.eachSeries(data.players, function (n, callback) {
                             var existingBot = _.find(botsData, function (m) {
                                 return m.botId == n.memberId;
                             });
-                            // console.log("botsData", botsData);
-                            // console.log("existingBot", existingBot);
                             if (existingBot) {
                                 var existingBotInSocket = _.find(data.players, function (m) {
                                     return m.memberId == existingBot.botId;
@@ -401,44 +390,61 @@ var model = {
                                         }
                                     } else {
                                         console.log("existingBotInSocket@@@@@@@@@@@@", existingBotInSocket);
-                                        var dataToCheckCards = {};
-                                        if (data.gameType.evaluateFunc == 'scoreHandsNormal') {
-                                            dataToCheckCards.type = 'scoreHandsNormal';
-                                            dataToCheckCards.botData = existingBotInSocket;
-                                            dataToCheckCards.minAmt = data.minAmt;
-                                            dataToCheckCards.maxAmt = data.maxAmt;
-                                            dataToCheckCards.accessToken = existingBot.accessToken;
-                                            dataToCheckCards.handNormal = teenPattiScore.scoreHandsNormal(existingBotInSocket.cards);
-                                            Bots.checkCards(dataToCheckCards, callback);
-                                        } else if (data.gameType.evaluateFunc == 'scoreHandsTwo') {
-                                            dataToCheckCards.type = 'scoreHandsTwo';
-                                            dataToCheckCards.botData = existingBot;
-                                            dataToCheckCards.minAmt = data.minAmt;
-                                            dataToCheckCards.maxAmt = data.maxAmt;
-                                            Bots.checkCards(dataToCheckCards, callback);
-                                        } else if (data.gameType.evaluateFunc == 'scoreHandsFour') {
-                                            dataToCheckCards.type = 'scoreHandsFour';
-                                            dataToCheckCards.botData = existingBot;
-                                            dataToCheckCards.minAmt = data.minAmt;
-                                            dataToCheckCards.maxAmt = data.maxAmt;
-                                            Bots.checkCards(dataToCheckCards, callback);
-                                        } else if (data.gameType.evaluateFunc == 'scoreHandsLowest') {
-                                            dataToCheckCards.type = 'scoreHandsLowest';
-                                            dataToCheckCards.botData = existingBot;
-                                            dataToCheckCards.minAmt = data.minAmt;
-                                            dataToCheckCards.maxAmt = data.maxAmt;
-                                            Bots.checkCards(dataToCheckCards, callback);
-                                        } else if (data.gameType.evaluateFunc == 'scoreHandsJoker') {
-                                            dataToCheckCards.type = 'scoreHandsJoker';
-                                            dataToCheckCards.botData = existingBot;
-                                            dataToCheckCards.minAmt = data.minAmt;
-                                            dataToCheckCards.maxAmt = data.maxAmt;
-                                            Bots.checkCards(dataToCheckCards, callback);
+                                        if (existingBotInSocket.isBlind == true) {
+                                            request.post({
+                                                url: global["env"].testIp + 'Player/makeSeen',
+                                                body: {
+                                                    tableId: existingBotInSocket.table,
+                                                    accessToken: existingBot.accessToken,
+                                                },
+                                                json: true
+                                            }, function (error, response, body) {
+                                                callback(error, body);
+                                            });
+                                        } else {
+                                            var dataToCheckCards = {};
+                                            if (data.gameType.evaluateFunc == 'scoreHandsNormal') {
+                                                dataToCheckCards.type = 'scoreHandsNormal';
+                                                dataToCheckCards.botData = existingBotInSocket;
+                                                dataToCheckCards.minAmt = data.minAmt;
+                                                dataToCheckCards.maxAmt = data.maxAmt;
+                                                dataToCheckCards.accessToken = existingBot.accessToken;
+                                                dataToCheckCards.handNormal = teenPattiScore.scoreHandsNormal(existingBotInSocket.cards);
+                                                Bots.checkCards(dataToCheckCards, callback);
+                                            } else if (data.gameType.evaluateFunc == 'scoreHandsTwo') {
+                                                dataToCheckCards.botData = existingBotInSocket;
+                                                dataToCheckCards.minAmt = data.minAmt;
+                                                dataToCheckCards.maxAmt = data.maxAmt;
+                                                dataToCheckCards.accessToken = existingBot.accessToken;
+                                                dataToCheckCards.handNormal = teenPattiScore.scoreHandsTwo(existingBotInSocket.cards);
+                                                Bots.checkCards(dataToCheckCards, callback);
+                                            } else if (data.gameType.evaluateFunc == 'scoreHandsFour') {
+                                                dataToCheckCards.botData = existingBotInSocket;
+                                                dataToCheckCards.minAmt = data.minAmt;
+                                                dataToCheckCards.maxAmt = data.maxAmt;
+                                                dataToCheckCards.accessToken = existingBot.accessToken;
+                                                dataToCheckCards.handNormal = teenPattiScore.scoreHandsFour(existingBotInSocket.cards);
+                                                Bots.checkCards(dataToCheckCards, callback);
+                                            } else if (data.gameType.evaluateFunc == 'scoreHandsLowest') {
+                                                dataToCheckCards.botData = existingBotInSocket;
+                                                dataToCheckCards.minAmt = data.minAmt;
+                                                dataToCheckCards.maxAmt = data.maxAmt;
+                                                dataToCheckCards.accessToken = existingBot.accessToken;
+                                                dataToCheckCards.handNormal = teenPattiScore.scoreHandsLowest(existingBotInSocket.cards);
+                                                Bots.checkCards(dataToCheckCards, callback);
+                                            } else if (data.gameType.evaluateFunc == 'scoreHandsJoker') {
+                                                dataToCheckCards.botData = existingBotInSocket;
+                                                dataToCheckCards.minAmt = data.minAmt;
+                                                dataToCheckCards.maxAmt = data.maxAmt;
+                                                dataToCheckCards.accessToken = existingBot.accessToken;
+                                                dataToCheckCards.handNormal = teenPattiScore.scoreHandsJoker(existingBotInSocket.cards);
+                                                Bots.checkCards(dataToCheckCards, callback);
+                                            }
                                         }
                                     }
                                 }
                             } else {
-                                callback()
+                                callback();
                             }
                         }, callback);
                     }
@@ -448,13 +454,13 @@ var model = {
     },
 
     checkCards: function (data, callback) {
-        console.log("data", data)
-        if (handNormal.name == 'Trio') {
+        console.log("data--", data)
+        if (data.handNormal.name == 'Trio') {
             if (chalCount > 0) {
                 request.post({
                     url: global["env"].testIp + 'Player/chaal',
                     body: {
-                        tableId: botData.table,
+                        tableId: data.botData.table,
                         accessToken: data.accessToken,
                         amount: data.maxAmt
                     },
@@ -467,165 +473,155 @@ var model = {
                 request.post({
                     url: global["env"].testIp + 'Player/showWinner',
                     body: {
-                        tableId: existingBot.table,
-                        accessToken: existingBot.accessToken,
+                        tableId: data.botData.table,
+                        accessToken: data.accessToken,
                     },
                     json: true
                 }, function (error, response, body) {
+                    chalCount = 50;
                     callback(error, body);
                 });
             }
-        } else if (handNormal.name == 'Pure Sequence') {
-            // chalCount = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
-            if (chalCount > 0) {
+        } else if (data.handNormal.name == 'Pure Sequence') {
+            // chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
+            if (chalCountPS > 0) {
                 request.post({
                     url: global["env"].testIp + 'Player/chaal',
                     body: {
-                        tableId: existingBot.table,
-                        accessToken: existingBot.accessToken,
-                        amount: data.data.maxAmt
+                        tableId: data.botData.table,
+                        accessToken: data.accessToken,
+                        amount: data.maxAmt
                     },
                     json: true
                 }, function (error, response, body) {
-                    chalCount--;
+                    chalCountPS--;
                     callback(error, body);
                 });
             } else {
                 request.post({
                     url: global["env"].testIp + 'Player/showWinner',
                     body: {
-                        tableId: existingBot.table,
-                        accessToken: existingBot.accessToken,
+                        tableId: data.botData.table,
+                        accessToken: data.accessToken,
                     },
                     json: true
                 }, function (error, response, body) {
+                    chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
                     callback(error, body);
                 });
             }
-
-        } else if (handNormal.name == 'Sequence') {
-            // chalCount = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
-            if (chalCount > 0) {
+        } else if (data.handNormal.name == 'Sequence') {
+            // chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
+            if (chalCountS > 0) {
                 request.post({
                     url: global["env"].testIp + 'Player/chaal',
                     body: {
-                        tableId: existingBot.table,
-                        accessToken: existingBot.accessToken,
-                        amount: data.data.maxAmt
+                        tableId: data.botData.table,
+                        accessToken: data.accessToken,
+                        amount: data.maxAmt
                     },
                     json: true
                 }, function (error, response, body) {
-                    chalCount--;
+                    chalCountS--;
                     callback(error, body);
                 });
             } else {
                 request.post({
                     url: global["env"].testIp + 'Player/showWinner',
                     body: {
-                        tableId: existingBot.table,
-                        accessToken: existingBot.accessToken,
+                        tableId: data.botData.table,
+                        accessToken: data.accessToken,
                     },
                     json: true
                 }, function (error, response, body) {
+                    chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
                     callback(error, body);
                 });
             }
-
-        } else if (handNormal.name == 'Colour') {
-            // chalCount = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
-            if (chalCount > 0) {
+        } else if (data.handNormal.name == 'Colour') {
+            // chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
+            if (chalCountC > 0) {
                 request.post({
                     url: global["env"].testIp + 'Player/chaal',
                     body: {
-                        tableId: existingBot.table,
-                        accessToken: existingBot.accessToken,
-                        amount: data.data.maxAmt
+                        tableId: data.botData.table,
+                        accessToken: data.accessToken,
+                        amount: data.maxAmt
                     },
                     json: true
                 }, function (error, response, body) {
-                    chalCount--;
+                    chalCountC--;
                     callback(error, body);
                 });
             } else {
                 request.post({
                     url: global["env"].testIp + 'Player/showWinner',
                     body: {
-                        tableId: existingBot.table,
-                        accessToken: existingBot.accessToken,
+                        tableId: data.botData.table,
+                        accessToken: data.accessToken,
                     },
                     json: true
                 }, function (error, response, body) {
+                    chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
                     callback(error, body);
                 });
             }
-
-        } else if (handNormal.name == 'Pair') {
-            // chalCount = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
-            if (chalCount > 0) {
+        } else if (data.handNormal.name == 'Pair') {
+            // chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
+            if (chalCountP > 0) {
                 request.post({
                     url: global["env"].testIp + 'Player/chaal',
                     body: {
-                        tableId: existingBot.table,
-                        accessToken: existingBot.accessToken,
-                        amount: data.data.maxAmt
+                        tableId: data.botData.table,
+                        accessToken: data.accessToken,
+                        amount: data.maxAmt
                     },
                     json: true
                 }, function (error, response, body) {
-                    chalCount--;
+                    chalCountP--;
                     callback(error, body);
                 });
             } else {
                 request.post({
                     url: global["env"].testIp + 'Player/showWinner',
                     body: {
-                        tableId: existingBot.table,
-                        accessToken: existingBot.accessToken,
+                        tableId: data.botData.table,
+                        accessToken: data.accessToken,
                     },
                     json: true
                 }, function (error, response, body) {
+                    chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
                     callback(error, body);
                 });
             }
-
-        } else if (handNormal.name == 'High Card') {
-            // chalCount = Math.floor(Math.random() * (1 - 0 + 1)) + 1;
-            if (chalCount > 0) {
+        } else if (data.handNormal.name == 'High Card') {
+            // chalCountHC = Math.floor(Math.random() * (1 - 0 + 1)) + 1;
+            if (chalCountHC > 0) {
                 request.post({
                     url: global["env"].testIp + 'Player/chaal',
                     body: {
-                        tableId: existingBot.table,
-                        accessToken: existingBot.accessToken,
-                        amount: data.data.maxAmt
+                        tableId: data.botData.table,
+                        accessToken: data.accessToken,
+                        amount: data.maxAmt
                     },
                     json: true
                 }, function (error, response, body) {
-                    chalCount--;
+                    chalCountHC--;
                     callback(error, body);
                 });
             } else {
                 request.post({
-                    url: global["env"].testIp + 'Player/showWinner',
+                    url: global["env"].testIp + 'Player/fold',
                     body: {
-                        tableId: existingBot.table,
-                        accessToken: existingBot.accessToken,
+                        tableId: data.botData.table,
+                        accessToken: data.accessToken,
                     },
                     json: true
                 }, function (error, response, body) {
+                    chalCountHC = Math.floor(Math.random() * (1 - 0 + 1)) + 1;
                     callback(error, body);
                 });
             }
-
-        } else {
-            request.post({
-                url: global["env"].testIp + 'Player/fold',
-                body: {
-                    tableId: existingBot.table,
-                    accessToken: existingBot.accessToken,
-                },
-                json: true
-            }, function (error, response, body) {
-                callback(error, body);
-            });
         }
     },
 
