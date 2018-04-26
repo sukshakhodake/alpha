@@ -139,42 +139,42 @@ var model = {
             },
             // run async eachLimit 10 for adding or removing
             function (data, callback) {
-                // console.log("tableDataFromApi++++++++++++", tableDataFromApi);
                 async.eachLimit(tableDataFromApi, 10, function (n, callback) {
                     // n.actualUsers ==1
-                    if (n.actualUsers == 1) {
-                        if (n.botCount == 0 || n.botCount == 1) {
-                            Bots.addBotToTable(n, callback);
-                        } else if (n.botCount == 2) {
-                            callback();
-                        } else {
-                            Bots.removeBotFromTable(n, callback);
-                        }
-                    } else if (n.actualUsers == 2) {
-                        if (n.botCount == 0 || n.botCount == 1) {
-                            Bots.addBotToTable(n, callback);
-                        } else if (n.botCount == 2) {
-                            callback();
-                        } else {
-                            Bots.removeBotFromTable(n, callback);
-                        }
-                    } else if (n.actualUsers == 3) {
-                        if (n.botCount == 0) {
-                            Bots.addBotToTable(n, callback);
-                        } else if (n.botCount == 1) {
-                            callback();
-                        } else {
-                            Bots.removeBotFromTable(n, callback);
-                        }
-                    } else if (n.actualUsers == 4) {
-                        if (n.botCount == 0) {
-                            Bots.addBotToTable(n, callback);
-                        } else if (n.botCount == 1) {
-                            callback();
-                        } else {
-                            Bots.removeBotFromTable(n, callback);
-                        }
-                    }
+                    Bots.removeBotFromEmptyTable(n, callback);
+                    // if (n.actualUsers == 1) {
+                    //     if (n.botCount == 0 || n.botCount == 1) {
+                    //         Bots.addBotToTable(n, callback);
+                    //     } else if (n.botCount == 2) {
+                    //         callback();
+                    //     } else {
+                    //         Bots.removeBotFromTable(n, callback);
+                    //     }
+                    // } else if (n.actualUsers == 2) {
+                    //     if (n.botCount == 0 || n.botCount == 1) {
+                    //         Bots.addBotToTable(n, callback);
+                    //     } else if (n.botCount == 2) {
+                    //         callback();
+                    //     } else {
+                    //         Bots.removeBotFromTable(n, callback);
+                    //     }
+                    // } else if (n.actualUsers == 3) {
+                    //     if (n.botCount == 0) {
+                    //         Bots.addBotToTable(n, callback);
+                    //     } else if (n.botCount == 1) {
+                    //         callback();
+                    //     } else {
+                    //         Bots.removeBotFromTable(n, callback);
+                    //     }
+                    // } else if (n.actualUsers == 4) {
+                    //     if (n.botCount == 0) {
+                    //         Bots.addBotToTable(n, callback);
+                    //     } else if (n.botCount == 1) {
+                    //         callback();
+                    //     } else {
+                    //         Bots.removeBotFromTable(n, callback);
+                    //     }
+                    // }
                 }, callback);
             }
         ], callback);
@@ -200,6 +200,7 @@ var model = {
                 },
                 //add bot to LocalsystmsDbTable
                 function (botData, callback) {
+                    console.log("botData", botData);
                     botsData = botData;
                     if (botData) {
                         accessToken = botData.accessToken;
@@ -277,7 +278,7 @@ var model = {
      *  @returns  {callback} callback -   Return table Data.
      */
     removeBotFromTable: function (data, callback) {
-        var localTableId = {};
+        var localTableData = {};
         async.waterfall([
                 //find a tble from localDb
                 function (callback) {
@@ -287,40 +288,117 @@ var model = {
                 },
                 // remove bots from respective table on server
                 function (tabData, callback) {
-                    localTableId = tabData;
-                    console.log("tabData", tabData);
+                    localTableData = tabData;
+                    console.log("tabData", localTableData);
                     //remove from table
-                    async.series(tabData.bots, function (n, callback) {
-                        request.post({
-                            url: global["env"].testIp + 'Player/deletePlayer',
-                            body: {
-                                tableId: tabData.tableId,
-                                accessToken: n.accessToken
-                            },
-                            json: true
-                        }, function (error, response, body) {
-                            console.log("--------", body);
-                            callback(error, body);
-                        });
+                    async.eachSeries(tabData.bots, function (n, callback) {
+                        async.waterfall([
+                                function (callback) {
+                                    request.post({
+                                        url: global["env"].testIp + 'Player/deletePlayer',
+                                        body: {
+                                            tableId: tabData.tableId,
+                                            accessToken: n.accessToken
+                                        },
+                                        json: true
+                                    }, function (error, response, body) {
+                                        console.log("------------", body);
+                                        callback(error, body);
+                                    });
+                                },
+                                function (test, callback) {
+                                    Bots.findOne({
+                                        _id: n._id
+                                    }).exec(function (err, data1) {
+                                        console.log("-----------", data1)
+                                        var dataToRemove = {};
+                                        dataToRemove.table = '';
+                                        dataToRemove._id = data1._id;
+                                        console.log("------dataToRemove-----", dataToRemove)
+                                        Bots.saveData(dataToRemove, callback);
+                                    });
+                                }
+                            ],
+                            callback);
                     }, callback);
                 },
-                //remove table reference from bot 
-                function (botData, callback) {
-                    Bots.fineOne({
-                        table: localTableId._id
-                    }).exec(function (err, data) {
-                        var dataToRemove = {};
-                        dataToRemove.table = '';
-                        dataToRemove._id = data._id;
-                        Bots.saveData(dataToRemove, callback);
-                    });
-                },
-                //remove the respective table
-                function (botdata, callback) {
+                function (test, callback) {
+                    console.log("botsdata", botsdata);
                     Tables.delete({
-                        _id: localTableId._id
+                        _id: localTableData._id
                     }).exec(callback);
                 }
+            ],
+            callback);
+    },
+
+
+    /**
+     *  remove bot from table Data
+     * 
+     *  @param  {String} table data -   table data.     
+     *  @returns  {callback} callback -   Return table Data.
+     */
+    removeBotFromEmptyTable: function (data, callback) {
+        var localTableData = {};
+        async.waterfall([
+                //find a tble details
+                function (callback) {
+                    request.post({
+                        url: global["env"].testIp + 'Player/getAll',
+                        body: {
+                            tableId: data._id,
+                        },
+                        json: true
+                    }, function (error, response, body) {
+                        console.log("------------", body);
+                        callback(error, body);
+                    });
+                },
+                function (tableDetails, callback) {
+                    request.post({
+                        url: global["env"].testIp + 'Player/getAll',
+                        body: {
+                            tableId: data._id,
+                        },
+                        json: true
+                    }, function (error, response, body) {
+                        console.log("------------", body);
+                        callback(error, body);
+                    });
+                },
+                // remove bots from respective table on server
+                // function (tabData, callback) {
+                //     localTableData = tabData;
+                //     console.log("tabData", localTableData);
+                //     //remove from table
+                //     async.eachSeries(tabData.bots, function (n, callback) {
+                //         async.waterfall([
+                //                 function (callback) {
+
+                //                 },
+                //                 function (test, callback) {
+                //                     Bots.findOne({
+                //                         _id: n._id
+                //                     }).exec(function (err, data1) {
+                //                         console.log("-----------", data1)
+                //                         var dataToRemove = {};
+                //                         dataToRemove.table = '';
+                //                         dataToRemove._id = data1._id;
+                //                         console.log("------dataToRemove-----", dataToRemove)
+                //                         Bots.saveData(dataToRemove, callback);
+                //                     });
+                //                 }
+                //             ],
+                //             callback);
+                //     }, callback);
+                // },
+                // function (test, callback) {
+                //     console.log("botsdata", botsdata);
+                //     Tables.delete({
+                //         _id: localTableData._id
+                //     }).exec(callback);
+                // }
             ],
             callback);
     },
@@ -390,7 +468,7 @@ var model = {
                                                     console.log("body>>>>>>>--", body);
                                                     callback(error, body);
                                                 });
-                                            }, 2000);
+                                            }, 3000);
                                         } else {
                                             request.post({
                                                 url: global["env"].testIp + 'Player/makeSeen',
@@ -491,20 +569,22 @@ var model = {
                         chalCount--;
                         callback(error, body);
                     });
-                }, 2000);
+                }, 3000);
             } else {
-                request.post({
-                    url: global["env"].testIp + 'Player/showWinner',
-                    body: {
-                        tableId: data.botData.table,
-                        accessToken: data.accessToken,
-                    },
-                    json: true
-                }, function (error, response, body) {
-                    chalCount = 50;
-                    console.log("chalCount", chalCount);
-                    callback(error, body);
-                });
+                setTimeout(function () {
+                    request.post({
+                        url: global["env"].testIp + 'Player/showWinner',
+                        body: {
+                            tableId: data.botData.table,
+                            accessToken: data.accessToken,
+                        },
+                        json: true
+                    }, function (error, response, body) {
+                        chalCount = 50;
+                        console.log("chalCount", chalCount);
+                        callback(error, body);
+                    });
+                }, 3000);
             }
         } else if (data.handNormal.name == 'Pure Sequence') {
             // chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
@@ -523,19 +603,21 @@ var model = {
                         console.log("chalCountPS", chalCountPS);
                         callback(error, body);
                     });
-                }, 2000);
+                }, 3000);
             } else {
-                request.post({
-                    url: global["env"].testIp + 'Player/showWinner',
-                    body: {
-                        tableId: data.botData.table,
-                        accessToken: data.accessToken,
-                    },
-                    json: true
-                }, function (error, response, body) {
-                    chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
-                    callback(error, body);
-                });
+                setTimeout(function () {
+                    request.post({
+                        url: global["env"].testIp + 'Player/showWinner',
+                        body: {
+                            tableId: data.botData.table,
+                            accessToken: data.accessToken,
+                        },
+                        json: true
+                    }, function (error, response, body) {
+                        chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
+                        callback(error, body);
+                    });
+                }, 3000);
             }
         } else if (data.handNormal.name == 'Sequence') {
             // chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
@@ -554,19 +636,21 @@ var model = {
                         console.log("chalCountS", chalCountS);
                         callback(error, body);
                     });
-                }, 2000);
+                }, 3000);
             } else {
-                request.post({
-                    url: global["env"].testIp + 'Player/showWinner',
-                    body: {
-                        tableId: data.botData.table,
-                        accessToken: data.accessToken,
-                    },
-                    json: true
-                }, function (error, response, body) {
-                    chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
-                    callback(error, body);
-                });
+                setTimeout(function () {
+                    request.post({
+                        url: global["env"].testIp + 'Player/showWinner',
+                        body: {
+                            tableId: data.botData.table,
+                            accessToken: data.accessToken,
+                        },
+                        json: true
+                    }, function (error, response, body) {
+                        chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
+                        callback(error, body);
+                    });
+                }, 3000);
             }
         } else if (data.handNormal.name == 'Color') {
             // chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
@@ -585,19 +669,21 @@ var model = {
                         console.log("chalCountC", chalCountC);
                         callback(error, body);
                     });
-                }, 2000);
+                }, 3000);
             } else {
-                request.post({
-                    url: global["env"].testIp + 'Player/showWinner',
-                    body: {
-                        tableId: data.botData.table,
-                        accessToken: data.accessToken,
-                    },
-                    json: true
-                }, function (error, response, body) {
-                    chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
-                    callback(error, body);
-                });
+                setTimeout(function () {
+                    request.post({
+                        url: global["env"].testIp + 'Player/showWinner',
+                        body: {
+                            tableId: data.botData.table,
+                            accessToken: data.accessToken,
+                        },
+                        json: true
+                    }, function (error, response, body) {
+                        chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
+                        callback(error, body);
+                    });
+                }, 3000);
             }
         } else if (data.handNormal.name == 'Pair') {
             // chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
@@ -616,19 +702,21 @@ var model = {
                         console.log("chalCountP", chalCountP);
                         callback(error, body);
                     });
-                }, 2000);
+                }, 3000);
             } else {
-                request.post({
-                    url: global["env"].testIp + 'Player/showWinner',
-                    body: {
-                        tableId: data.botData.table,
-                        accessToken: data.accessToken,
-                    },
-                    json: true
-                }, function (error, response, body) {
-                    chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
-                    callback(error, body);
-                });
+                setTimeout(function () {
+                    request.post({
+                        url: global["env"].testIp + 'Player/showWinner',
+                        body: {
+                            tableId: data.botData.table,
+                            accessToken: data.accessToken,
+                        },
+                        json: true
+                    }, function (error, response, body) {
+                        chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
+                        callback(error, body);
+                    });
+                }, 3000);
             }
         } else if (data.handNormal.name == 'High Card') {
             // chalCountHC = Math.floor(Math.random() * (1 - 0 + 1)) + 1;
@@ -647,22 +735,25 @@ var model = {
                         console.log("chalCountHC", chalCountHC);
                         callback(error, body);
                     });
-                }, 2000);
+                }, 3000);
             } else {
-                request.post({
-                    url: global["env"].testIp + 'Player/fold',
-                    body: {
-                        tableId: data.botData.table,
-                        accessToken: data.accessToken,
-                    },
-                    json: true
-                }, function (error, response, body) {
-                    chalCountHC = 1;
-                    callback(error, body);
-                });
+                setTimeout(function () {
+                    request.post({
+                        url: global["env"].testIp + 'Player/fold',
+                        body: {
+                            tableId: data.botData.table,
+                            accessToken: data.accessToken,
+                        },
+                        json: true
+                    }, function (error, response, body) {
+                        chalCountHC = 1;
+                        callback(error, body);
+                    });
+                }, 3000);
             }
         }
     },
+
 
     getAllTableInfo: function (data, callback) {
         var dataToSend = {};
@@ -696,6 +787,7 @@ var model = {
  *  @returns  {callback} callback -   Return cancel order details.
  */
 cron.schedule('*/5 * * * * *', function () {
+    console.log("-")
     model.getTableInfo();
 });
 
