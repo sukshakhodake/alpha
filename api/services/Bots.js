@@ -141,40 +141,39 @@ var model = {
             function (data, callback) {
                 async.eachLimit(tableDataFromApi, 10, function (n, callback) {
                     // n.actualUsers ==1
-                    Bots.removeBotFromEmptyTable(n, callback);
-                    // if (n.actualUsers == 1) {
-                    //     if (n.botCount == 0 || n.botCount == 1) {
-                    //         Bots.addBotToTable(n, callback);
-                    //     } else if (n.botCount == 2) {
-                    //         callback();
-                    //     } else {
-                    //         Bots.removeBotFromTable(n, callback);
-                    //     }
-                    // } else if (n.actualUsers == 2) {
-                    //     if (n.botCount == 0 || n.botCount == 1) {
-                    //         Bots.addBotToTable(n, callback);
-                    //     } else if (n.botCount == 2) {
-                    //         callback();
-                    //     } else {
-                    //         Bots.removeBotFromTable(n, callback);
-                    //     }
-                    // } else if (n.actualUsers == 3) {
-                    //     if (n.botCount == 0) {
-                    //         Bots.addBotToTable(n, callback);
-                    //     } else if (n.botCount == 1) {
-                    //         callback();
-                    //     } else {
-                    //         Bots.removeBotFromTable(n, callback);
-                    //     }
-                    // } else if (n.actualUsers == 4) {
-                    //     if (n.botCount == 0) {
-                    //         Bots.addBotToTable(n, callback);
-                    //     } else if (n.botCount == 1) {
-                    //         callback();
-                    //     } else {
-                    //         Bots.removeBotFromTable(n, callback);
-                    //     }
-                    // }
+                    if (n.actualUsers == 1) {
+                        if (n.botCount == 0 || n.botCount == 1) {
+                            Bots.addBotToTable(n, callback);
+                        } else if (n.botCount == 2) {
+                            callback();
+                        } else {
+                            Bots.removeBotFromTable(n, callback);
+                        }
+                    } else if (n.actualUsers == 2) {
+                        if (n.botCount == 0 || n.botCount == 1) {
+                            Bots.addBotToTable(n, callback);
+                        } else if (n.botCount == 2) {
+                            callback();
+                        } else {
+                            Bots.removeBotFromTable(n, callback);
+                        }
+                    } else if (n.actualUsers == 3) {
+                        if (n.botCount == 0) {
+                            Bots.addBotToTable(n, callback);
+                        } else if (n.botCount == 1) {
+                            callback();
+                        } else {
+                            Bots.removeBotFromTable(n, callback);
+                        }
+                    } else if (n.actualUsers == 4) {
+                        if (n.botCount == 0) {
+                            Bots.addBotToTable(n, callback);
+                        } else if (n.botCount == 1) {
+                            callback();
+                        } else {
+                            Bots.removeBotFromTable(n, callback);
+                        }
+                    }
                 }, callback);
             }
         ], callback);
@@ -194,76 +193,86 @@ var model = {
                 function (callback) {
                     Bots.findOne({
                         "table": {
-                            $exists: false
+                            $exists: false,
+                            $eq: null
                         }
                     }).exec(callback);
                 },
                 //add bot to LocalsystmsDbTable
                 function (botData, callback) {
-                    console.log("botData", botData);
-                    botsData = botData;
-                    if (botData) {
-                        accessToken = botData.accessToken;
-                        var tableDataToSave = {};
-                        tableDataToSave.tableId = data._id;
-                        tableDataToSave.json = data;
-                        tableDataToSave.bots = [];
-                        tableDataToSave.bots.push(botData._id);
-                        tableDataToSave.status = "InUse";
-                        Tables.saveData(tableDataToSave, callback);
-                    }
-                },
-                //save tableId to respective bot
-                function (tabData, callback) {
-                    // console.log("tabData", tabData);
-                    // console.log("botsData", botsData);
-                    botsData.table = tabData._id;
-                    Bots.saveData(botsData, callback);
-                },
-                // getAll Data from server table
-                function (getAllData, callback) {
-                    if (!_.isEmpty(accessToken)) {
-                        var dataToSend = {};
-                        dataToSend.accessToken = accessToken;
-                        dataToSend.tableId = data._id;
-                        request.post({
-                            url: global["env"].testIp + 'Player/getAll',
-                            body: dataToSend,
-                            json: true
-                        }, function (error, response, body) {
-                            // console.log("body-----", body.data);
-                            callback(error, body);
-                        });
-                    }
-                },
-                //add bot to tableOnServer
-                function (finalData, callback) {
-                    var arrNumber = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-                    var emptyPosition = [];
-                    emptyPosition = _.map(arrNumber, function (n) {
-                        var indx = _.findIndex(finalData.data.players, function (o) {
-                            return o.playerNo == n;
-                        });
-                        if (indx > -1) {
-                            return null
-                        } else {
-                            return n;
-                        };
-                    });
-                    if (emptyPosition[0] != null) {
-                        request.post({
-                            url: global["env"].testIp + 'Table/addUserToTable',
-                            body: {
-                                playerNo: emptyPosition[0],
-                                tableId: data._id,
-                                socketId: socketId,
-                                accessToken: accessToken
-                            },
-                            json: true
-                        }, function (error, response, body) {
-                            // console.log("body-########----", body);
-                            callback(error, body);
-                        });
+                    console.log("botData", botData)
+                    if (botData && botData != null) {
+                        async.waterfall([
+                                //add bot to LocalsystmsDbTable
+                                function (callback) {
+                                    botsData = botData;
+                                    accessToken = botData.accessToken;
+                                    var tableDataToSave = {};
+                                    tableDataToSave.tableId = data._id;
+                                    tableDataToSave.json = data;
+                                    tableDataToSave.bots = [];
+                                    tableDataToSave.bots.push(botData._id);
+                                    tableDataToSave.status = "InUse";
+                                    Tables.saveData(tableDataToSave, callback);
+
+                                },
+                                //save tableId to respective bot
+                                function (tabData, callback) {
+                                    // console.log("tabData", tabData);
+                                    // console.log("botsData", botsData);
+                                    botsData.table = tabData._id;
+                                    Bots.saveData(botsData, callback);
+                                },
+                                // getAll Data from server table
+                                function (getAllData, callback) {
+                                    if (!_.isEmpty(accessToken)) {
+                                        var dataToSend = {};
+                                        dataToSend.accessToken = accessToken;
+                                        dataToSend.tableId = data._id;
+                                        request.post({
+                                            url: global["env"].testIp + 'Player/getAll',
+                                            body: dataToSend,
+                                            json: true
+                                        }, function (error, response, body) {
+                                            // console.log("body-----", body.data);
+                                            callback(error, body);
+                                        });
+                                    }
+                                },
+                                //add bot to tableOnServer
+                                function (finalData, callback) {
+                                    var arrNumber = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+                                    var emptyPosition = [];
+                                    emptyPosition = _.map(arrNumber, function (n) {
+                                        var indx = _.findIndex(finalData.data.players, function (o) {
+                                            return o.playerNo == n;
+                                        });
+                                        if (indx > -1) {
+                                            return null
+                                        } else {
+                                            return n;
+                                        };
+                                    });
+                                    if (emptyPosition[0] != null) {
+                                        request.post({
+                                            url: global["env"].testIp + 'Table/addUserToTable',
+                                            body: {
+                                                playerNo: emptyPosition[0],
+                                                tableId: data._id,
+                                                socketId: socketId,
+                                                accessToken: accessToken
+                                            },
+                                            json: true
+                                        }, function (error, response, body) {
+                                            // console.log("body-########----", body);
+                                            callback(error, body);
+                                        });
+                                    }
+                                }
+                            ],
+                            callback);
+                    } else {
+                        callback()
                     }
                 }
             ],
@@ -340,9 +349,7 @@ var model = {
      *  @returns  {callback} callback -   Return table Data.
      */
     removeBotFromEmptyTable: function (data, callback) {
-        var localTableData = {};
         async.waterfall([
-                //find a tble details
                 function (callback) {
                     request.post({
                         url: global["env"].testIp + 'Player/getAll',
@@ -351,54 +358,48 @@ var model = {
                         },
                         json: true
                     }, function (error, response, body) {
-                        console.log("------------", body);
                         callback(error, body);
                     });
                 },
-                function (tableDetails, callback) {
-                    request.post({
-                        url: global["env"].testIp + 'Player/getAll',
-                        body: {
-                            tableId: data._id,
-                        },
-                        json: true
-                    }, function (error, response, body) {
-                        console.log("------------", body);
-                        callback(error, body);
-                    });
-                },
-                // remove bots from respective table on server
-                // function (tabData, callback) {
-                //     localTableData = tabData;
-                //     console.log("tabData", localTableData);
-                //     //remove from table
-                //     async.eachSeries(tabData.bots, function (n, callback) {
-                //         async.waterfall([
-                //                 function (callback) {
-
-                //                 },
-                //                 function (test, callback) {
-                //                     Bots.findOne({
-                //                         _id: n._id
-                //                     }).exec(function (err, data1) {
-                //                         console.log("-----------", data1)
-                //                         var dataToRemove = {};
-                //                         dataToRemove.table = '';
-                //                         dataToRemove._id = data1._id;
-                //                         console.log("------dataToRemove-----", dataToRemove)
-                //                         Bots.saveData(dataToRemove, callback);
-                //                     });
-                //                 }
-                //             ],
-                //             callback);
-                //     }, callback);
-                // },
-                // function (test, callback) {
-                //     console.log("botsdata", botsdata);
-                //     Tables.delete({
-                //         _id: localTableData._id
-                //     }).exec(callback);
-                // }
+                function (playersData, callback) {
+                    var botsData = {};
+                    async.eachLimit(playersData.data.players, 10, function (n, callback) {
+                        async.waterfall([
+                                function (callback) {
+                                    Bots.findOne({
+                                        botId: n.memberId
+                                    }).exec(callback);
+                                },
+                                function (botData, callback) {
+                                    botsData = botData;
+                                    if (botData) {
+                                        request.post({
+                                            url: global["env"].testIp + 'Player/deletePlayer',
+                                            body: {
+                                                tableId: n.table,
+                                                accessToken: botData.accessToken
+                                            },
+                                            json: true
+                                        }, function (error, response, body) {
+                                            callback(error, body);
+                                        });
+                                    }
+                                },
+                                function (tData, callback) {
+                                    Tables.delete({
+                                        tableId: n.table
+                                    }).exec(callback);
+                                },
+                                function (tData, callback) {
+                                    var dataToSave = {};
+                                    dataToSave._id = botsData._id;
+                                    dataToSave.table = '';
+                                    Bots.saveData(dataToSave, callback);
+                                }
+                            ],
+                            callback);
+                    }, callback);
+                }
             ],
             callback);
     },
