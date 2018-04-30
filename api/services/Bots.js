@@ -147,7 +147,7 @@ var model = {
                         } else if (n.botCount == 2) {
                             callback();
                         } else {
-                            Bots.removeBotFromTable(n, callback);
+                            // Bots.removeBotFromEmptyTable(n, callback);
                         }
                     } else if (n.actualUsers == 2) {
                         if (n.botCount == 0 || n.botCount == 1) {
@@ -155,7 +155,7 @@ var model = {
                         } else if (n.botCount == 2) {
                             callback();
                         } else {
-                            Bots.removeBotFromTable(n, callback);
+                            // Bots.removeBotFromEmptyTable(n, callback);
                         }
                     } else if (n.actualUsers == 3) {
                         if (n.botCount == 0) {
@@ -163,7 +163,7 @@ var model = {
                         } else if (n.botCount == 1) {
                             callback();
                         } else {
-                            Bots.removeBotFromTable(n, callback);
+                            // Bots.removeBotFromEmptyTable(n, callback);
                         }
                     } else if (n.actualUsers == 4) {
                         if (n.botCount == 0) {
@@ -171,8 +171,10 @@ var model = {
                         } else if (n.botCount == 1) {
                             callback();
                         } else {
-                            Bots.removeBotFromTable(n, callback);
+                            // Bots.removeBotFromEmptyTable(n, callback);
                         }
+                    } else if (n.actualUsers == 0) {
+                        Bots.removeBotFromEmptyTable(n, callback);
                     }
                 }, callback);
             }
@@ -192,10 +194,13 @@ var model = {
                 //find a bot
                 function (callback) {
                     Bots.findOne({
-                        "table": {
-                            $exists: false,
-                            $eq: null
-                        }
+                        $or: [{
+                            "table": {
+                                $exists: false
+                            }
+                        }, {
+                            table: null
+                        }]
                     }).exec(callback);
                 },
                 //add bot to LocalsystmsDbTable
@@ -373,29 +378,35 @@ var model = {
                                 function (botData, callback) {
                                     botsData = botData;
                                     if (botData) {
-                                        request.post({
-                                            url: global["env"].testIp + 'Player/deletePlayer',
-                                            body: {
-                                                tableId: n.table,
-                                                accessToken: botData.accessToken
-                                            },
-                                            json: true
-                                        }, function (error, response, body) {
-                                            callback(error, body);
-                                        });
+                                        async.waterfall([
+                                                function (callback) {
+                                                    request.post({
+                                                        url: global["env"].testIp + 'Player/deletePlayer',
+                                                        body: {
+                                                            tableId: n.table,
+                                                            accessToken: botData.accessToken
+                                                        },
+                                                        json: true
+                                                    }, function (error, response, body) {
+                                                        callback(error, body);
+                                                    });
+
+                                                },
+                                                function (tData, callback) {
+                                                    Tables.deleteData({
+                                                        _id: botsData.table
+                                                    }, callback);
+                                                },
+                                                function (tbData, callback) {
+                                                    var dataToSave = {};
+                                                    dataToSave._id = botsData._id;
+                                                    dataToSave.table = null;
+                                                    Bots.saveData(dataToSave, callback);
+                                                }
+                                            ],
+                                            callback);
                                     }
                                 },
-                                function (tData, callback) {
-                                    Tables.delete({
-                                        tableId: n.table
-                                    }).exec(callback);
-                                },
-                                function (tData, callback) {
-                                    var dataToSave = {};
-                                    dataToSave._id = botsData._id;
-                                    dataToSave.table = '';
-                                    Bots.saveData(dataToSave, callback);
-                                }
                             ],
                             callback);
                     }, callback);
@@ -403,6 +414,109 @@ var model = {
             ],
             callback);
     },
+
+
+    //socket
+    showWinnerFunction: function (data, callback) {
+        console.log("showWinnerFunction--", data);
+        Bots.removeBotAfterShowWinner(data.data, callback)
+    },
+
+
+    /**
+     *  remove bot from table Data after show winner
+     * 
+     *  @param  {String} table data -   table data.     
+     *  @returns  {callback} callback -   Return table Data.
+     */
+    removeBotAfterShowWinner: function (data, callback) {
+        var localTableData = {};
+        async.waterfall([
+                //find a tble from localDb
+                function (callback) {
+                    Tables.findOne({
+                        tableId: data.pot.table
+                    }).deepPopulate('bots').exec(callback);
+                },
+                function (test, callback) {
+                    localTableData = test;
+                    console.log("test", test)
+                    request.post({
+                        url: global["env"].testIp + 'Player/getAll',
+                        body: {
+                            tableId: data.pot.table,
+                        },
+                        json: true
+                    }, function (error, response, body) {
+                        console.log("body", body)
+                        callback(error, body);
+                    });
+                },
+                // remove bots from respective table on server
+                function (tabData, callback) {
+                    console.log("localTableData", localTableData.bots.length);
+                    var botLength = localTableData.bots.length;
+                    var playersLength = tabData.data.players.length;
+                    console.log("tabData", tabData.data.players.length)
+                    if (playersLength >= 5 && botLength >= 1) {
+                        Bots.deleteBot(localTableData, callback)
+                    } else if (playersLength == 4 && botLength > 1) {
+                        _.pullAt(localTableData.bots, 0);
+                        Bots.deleteBot(localTableData, callback)
+                    } else if (playersLength == 3 && botLength > 1) {
+                        // _.pullAt(localTableData.bots, 0);
+                        Bots.deleteBot(localTableData, callback)
+                    } else if (playersLength == 2 && botLength == 1) {
+                        // _.pullAt(localTableData.bots, [0, 1]);
+                        console.log("(((((((((((()))))))))))))))))))");
+                        Bots.deleteBot(localTableData, callback)
+                    } else if (playersLength == 1 && botLength > 2) {
+                        _.pullAt(localTableData.bots, [0, 1]);
+                        Bots.deleteBot(localTableData, callback)
+                    } else {
+                        callback()
+                    }
+                }
+            ],
+            callback);
+    },
+
+    deleteBot: function (data, callback) {
+        async.eachSeries(data.bots, function (n, callback) {
+            async.waterfall([
+                    function (callback) {
+                        request.post({
+                            url: global["env"].testIp + 'Player/deletePlayer',
+                            body: {
+                                tableId: data.tableId,
+                                accessToken: n.accessToken
+                            },
+                            json: true
+                        }, function (error, response, body) {
+                            console.log("------------", body);
+                            callback(error, body);
+                        });
+                    },
+                    function (test, callback) {
+                        Tables.deleteData({
+                            _id: data._id
+                        }, callback);
+                    },
+                    function (test, callback) {
+                        Bots.findOne({
+                            _id: n._id
+                        }).exec(function (err, data1) {
+                            var dataToSave = {};
+                            dataToSave._id = n._id;
+                            dataToSave.table = null;
+                            Bots.saveData(dataToSave, callback);
+                        });
+                    }
+                ],
+                callback);
+        }, callback);
+    },
+
 
     /**
      *  socket function
@@ -756,26 +870,7 @@ var model = {
     },
 
 
-    getAllTableInfo: function (data, callback) {
-        var dataToSend = {};
-        dataToSend.maxRow = 100;
-        dataToSend.filter = {
-            type: "public"
-        };
-        request.post({
-            url: global["env"].testIp + 'Table/filterTables',
-            body: dataToSend,
-            json: true
-        }, function (error, response, body) {
-            callback(error, body);
-        });
-    },
-
     //socket
-    showWinnerFunction: function (data, callback) {
-        console.log("showWinnerFunction--", data);
-    },
-
     sideShowSocket: function (data, callback) {
         console.log("sideShowSocket--", data);
     }
