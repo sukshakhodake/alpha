@@ -139,39 +139,31 @@ var model = {
             },
             // run async eachLimit 10 for adding or removing
             function (data, callback) {
-                async.eachLimit(tableDataFromApi, 10, function (n, callback) {
+                async.eachSeries(tableDataFromApi, function (n, callback) {
                     // n.actualUsers ==1
                     if (n.actualUsers == 1) {
                         if (n.botCount == 0 || n.botCount == 1) {
                             Bots.addBotToTable(n, callback);
                         } else if (n.botCount == 2) {
                             callback();
-                        } else {
-                            // Bots.removeBotFromEmptyTable(n, callback);
                         }
                     } else if (n.actualUsers == 2) {
                         if (n.botCount == 0 || n.botCount == 1) {
                             Bots.addBotToTable(n, callback);
                         } else if (n.botCount == 2) {
                             callback();
-                        } else {
-                            // Bots.removeBotFromEmptyTable(n, callback);
                         }
                     } else if (n.actualUsers == 3) {
                         if (n.botCount == 0) {
                             Bots.addBotToTable(n, callback);
                         } else if (n.botCount == 1) {
                             callback();
-                        } else {
-                            // Bots.removeBotFromEmptyTable(n, callback);
                         }
                     } else if (n.actualUsers == 4) {
                         if (n.botCount == 0) {
                             Bots.addBotToTable(n, callback);
                         } else if (n.botCount == 1) {
                             callback();
-                        } else {
-                            // Bots.removeBotFromEmptyTable(n, callback);
                         }
                     } else if (n.actualUsers == 0) {
                         Bots.removeBotFromEmptyTable(n, callback);
@@ -205,7 +197,7 @@ var model = {
                 },
                 //add bot to LocalsystmsDbTable
                 function (botData, callback) {
-                    console.log("botData", botData)
+                    // console.log("botData", botData)
                     if (botData && botData != null) {
                         async.waterfall([
                                 //add bot to LocalsystmsDbTable
@@ -390,7 +382,6 @@ var model = {
                                                     }, function (error, response, body) {
                                                         callback(error, body);
                                                     });
-
                                                 },
                                                 function (tData, callback) {
                                                     Tables.deleteData({
@@ -419,7 +410,7 @@ var model = {
     //socket
     showWinnerFunction: function (data, callback) {
         console.log("showWinnerFunction--", data);
-        Bots.removeBotAfterShowWinner(data.data, callback)
+        // Bots.removeBotAfterShowWinner(data.data, callback)
     },
 
 
@@ -457,21 +448,25 @@ var model = {
                     console.log("localTableData", localTableData.bots.length);
                     var botLength = localTableData.bots.length;
                     var playersLength = tabData.data.players.length;
+                    var actualPlayerLength = playersLength - botLength;
                     console.log("tabData", tabData.data.players.length)
-                    if (playersLength >= 5 && botLength >= 1) {
+                    console.log("actualLength", actualPlayerLength)
+                    if (actualPlayerLength >= 5 && botLength >= 1) {
                         Bots.deleteBot(localTableData, callback)
-                    } else if (playersLength == 4 && botLength > 1) {
+                    } else if (actualPlayerLength == 4 && botLength > 1) {
                         _.pullAt(localTableData.bots, 0);
                         Bots.deleteBot(localTableData, callback)
-                    } else if (playersLength == 3 && botLength > 1) {
+                    } else if (actualPlayerLength == 3 && botLength > 1) {
                         // _.pullAt(localTableData.bots, 0);
                         Bots.deleteBot(localTableData, callback)
-                    } else if (playersLength == 2 && botLength == 1) {
+                    } else if (actualPlayerLength == 2 && botLength == 1) {
                         // _.pullAt(localTableData.bots, [0, 1]);
                         console.log("(((((((((((()))))))))))))))))))");
                         Bots.deleteBot(localTableData, callback)
-                    } else if (playersLength == 1 && botLength > 2) {
-                        _.pullAt(localTableData.bots, [0, 1]);
+                    } else if (actualPlayerLength == 1) {
+                        // _.pullAt(localTableData.bots, [0, 1]);
+                        // Bots.deleteBot(localTableData, callback)
+                        console.log("(((((((((((()))))))))))))))))))");
                         Bots.deleteBot(localTableData, callback)
                     } else {
                         callback()
@@ -483,6 +478,8 @@ var model = {
 
     deleteBot: function (data, callback) {
         async.eachSeries(data.bots, function (n, callback) {
+            console.log("data.tableId", data.tableId);
+            console.log("n.accessToken", n.accessToken)
             async.waterfall([
                     function (callback) {
                         request.post({
@@ -493,7 +490,9 @@ var model = {
                             },
                             json: true
                         }, function (error, response, body) {
-                            console.log("------------", body);
+                            console.log("-----body-------", body);
+                            console.log("----error--------", error);
+                            // console.log("-------response-----", response);
                             callback(error, body);
                         });
                     },
@@ -872,8 +871,171 @@ var model = {
 
     //socket
     sideShowSocket: function (data, callback) {
-        console.log("sideShowSocket--", data);
-    }
+        // console.log("sideShowSocket--", data);
+        Bots.sideShowLogic(data.data, callback);
+    },
+
+    /**
+     *  side show logic
+     * 
+     *  @param  {String} bot  data -   bot gameplay data.     
+     *  @returns  {callback} callback -   Return card data.
+     */
+    sideShowLogic: function (data, callback) {
+        console.log("data--", data);
+        var localTableData = {};
+        async.waterfall([
+                //find a tble from localDb
+                function (callback) {
+                    Tables.findOne({
+                        tableId: data.toPlayer.table
+                    }).deepPopulate('bots').exec(callback);
+                },
+                function (test, callback) {
+                    localTableData = test;
+                    console.log("localTableData", localTableData)
+                    request.post({
+                        url: global["env"].testIp + 'Player/getAll',
+                        body: {
+                            tableId: data.toPlayer.table,
+                        },
+                        json: true
+                    }, function (error, response, body) {
+                        callback(error, body);
+                    });
+                },
+                // remove bots from respective table on server
+                function (tabData, callback) {
+                    console.log("tabDatatabDatatabData", tabData)
+                    var isPresent = _.find(localTableData.bots, function (o) {
+                        return o.botId == data.toPlayer.memberId;
+                    })
+                    if (!_.isEmpty(isPresent)) {
+                        var dataToCheckSSCards = {};
+                        if (tabData.data.gameType.evaluateFunc == 'scoreHandsNormal') {
+                            dataToCheckSSCards.table = data.toPlayer.table;
+                            dataToCheckSSCards.accessToken = data.toPlayer.accessToken;
+                            dataToCheckSSCards.handNormal = teenPattiScore.scoreHandsNormal(data.toPlayer.cards);
+                            console.log("dataToCheckSSCards", dataToCheckSSCards);
+                            Bots.checkCardsForSideShow(dataToCheckSSCards, callback);
+                        } else if (tabData.data.gameType.evaluateFunc == 'scoreHandsTwo') {
+                            dataToCheckSSCards.table = data.toPlayer.table;
+                            dataToCheckSSCards.accessToken = data.toPlayer.accessToken;
+                            dataToCheckSSCards.handNormal = teenPattiScore.scoreHandsTwo(data.toPlayer.cards);
+                            console.log("dataToCheckSSCards", dataToCheckSSCards);
+                            Bots.checkCardsForSideShow(dataToCheckSSCards, callback);
+                        } else if (tabData.data.gameType.evaluateFunc == 'scoreHandsFour') {
+                            dataToCheckSSCards.table = data.toPlayer.table;
+                            dataToCheckSSCards.accessToken = data.toPlayer.accessToken;
+                            dataToCheckSSCards.handNormal = teenPattiScore.scoreHandsFour(data.toPlayer.cards);
+                            Bots.checkCardsForSideShow(dataToCheckSSCards, callback);
+                        } else if (tabData.data.gameType.evaluateFunc == 'scoreHandsLowest') {
+                            dataToCheckSSCards.table = data.toPlayer.table;
+                            dataToCheckSSCards.accessToken = data.toPlayer.accessToken;
+                            dataToCheckSSCards.handNormal = teenPattiScore.scoreHandsLowest(data.toPlayer.cards);
+                            Bots.checkCardsForSideShow(dataToCheckSSCards, callback);
+                        } else if (tabData.data.gameType.evaluateFunc == 'scoreHandsJoker') {
+                            dataToCheckSSCards.table = data.toPlayer.table;
+                            dataToCheckSSCards.accessToken = data.toPlayer.accessToken;
+                            dataToCheckSSCards.handNormal = teenPattiScore.scoreHandsJoker(data.toPlayer.cards);
+                            Bots.checkCardsForSideShow(dataToCheckSSCards, callback);
+                        }
+                    } else {
+                        callback();
+                    }
+                }
+            ],
+            callback);
+    },
+
+    /**
+     *  match cards types for sideShow
+     * 
+     *  @param  {String} bot  data -   bot gameplay data.     
+     *  @returns  {callback} callback -   Return card data.
+     */
+    checkCardsForSideShow: function (data, callback) {
+        console.log("data--", data)
+        if (data.handNormal.name == 'Trio') {
+            setTimeout(function () {
+                request.post({
+                    url: global["env"].testIp + 'Player/cancelSideShow',
+                    body: {
+                        tableId: data.table,
+                        accessToken: data.accessToken
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    callback(error, body);
+                });
+            }, 3000);
+        } else if (data.handNormal.name == 'Pure Sequence') {
+            setTimeout(function () {
+                request.post({
+                    url: global["env"].testIp + 'Player/cancelSideShow',
+                    body: {
+                        tableId: data.table,
+                        accessToken: data.accessToken
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    callback(error, body);
+                });
+            }, 3000);
+        } else if (data.handNormal.name == 'Sequence') {
+            setTimeout(function () {
+                request.post({
+                    url: global["env"].testIp + 'Player/cancelSideShow',
+                    body: {
+                        tableId: data.table,
+                        accessToken: data.accessToken
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    callback(error, body);
+                });
+            }, 3000);
+        } else if (data.handNormal.name == 'Color') {
+            setTimeout(function () {
+                request.post({
+                    url: global["env"].testIp + 'Player/doSideShow',
+                    body: {
+                        tableId: data.table,
+                        accessToken: data.accessToken
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    callback(error, body);
+                });
+            }, 3000);
+        } else if (data.handNormal.name == 'Pair') {
+            setTimeout(function () {
+                request.post({
+                    url: global["env"].testIp + 'Player/doSideShow',
+                    body: {
+                        tableId: data.table,
+                        accessToken: data.accessToken
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    callback(error, body);
+                });
+            }, 3000);
+        } else if (data.handNormal.name == 'High Card') {
+            setTimeout(function () {
+                request.post({
+                    url: global["env"].testIp + 'Player/doSideShow',
+                    body: {
+                        tableId: data.table,
+                        accessToken: data.accessToken
+                    },
+                    json: true
+                }, function (error, response, body) {
+                    callback(error, body);
+                });
+            }, 3000);
+        }
+    },
 };
 
 /**
