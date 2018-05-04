@@ -211,7 +211,6 @@ var model = {
                                     tableDataToSave.bots.push(botData._id);
                                     tableDataToSave.status = "InUse";
                                     Tables.saveData(tableDataToSave, callback);
-
                                 },
                                 //save tableId to respective bot
                                 function (tabData, callback) {
@@ -536,7 +535,7 @@ var model = {
             chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
             chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
             chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
-            chalCountHC = 1;
+            chalCountHC = 2;
         } else {
             async.waterfall([
                     function (callback) {
@@ -689,7 +688,7 @@ var model = {
                         },
                         json: true
                     }, function (error, response, body) {
-                        chalCount = 50;
+                        // chalCount = 50;
                         console.log("chalCount", chalCount);
                         callback(error, body);
                     });
@@ -723,7 +722,7 @@ var model = {
                         },
                         json: true
                     }, function (error, response, body) {
-                        chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
+                        // chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
                         callback(error, body);
                     });
                 }, 3000);
@@ -756,7 +755,7 @@ var model = {
                         },
                         json: true
                     }, function (error, response, body) {
-                        chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
+                        // chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
                         callback(error, body);
                     });
                 }, 3000);
@@ -789,7 +788,7 @@ var model = {
                         },
                         json: true
                     }, function (error, response, body) {
-                        chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
+                        // chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
                         callback(error, body);
                     });
                 }, 3000);
@@ -822,7 +821,7 @@ var model = {
                         },
                         json: true
                     }, function (error, response, body) {
-                        chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
+                        // chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
                         callback(error, body);
                     });
                 }, 3000);
@@ -855,7 +854,7 @@ var model = {
                         },
                         json: true
                     }, function (error, response, body) {
-                        chalCountHC = 1;
+                        // chalCountHC = 1;
                         callback(error, body);
                     });
                 }, 3000);
