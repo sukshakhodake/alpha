@@ -39,6 +39,32 @@ var controller = {
         }
     },
 
+    addSingleBotToTable: function (req, res) {
+        if (req.body) {
+            Bots.addSingleBotToTable(req.body, res.callback);
+        } else {
+            res.json({
+                value: false,
+                data: {
+                    message: "Invalid Request"
+                }
+            })
+        }
+    },
+
+    searchForFreeBots: function (req, res) {
+        if (req.body) {
+            Bots.searchForFreeBots(req.body, res.callback);
+        } else {
+            res.json({
+                value: false,
+                data: {
+                    message: "Invalid Request"
+                }
+            })
+        }
+    },
+
     getAllTableInfo: function (req, res) {
         if (req.body) {
             Bots.getAllTableInfo(req.body, res.callback);

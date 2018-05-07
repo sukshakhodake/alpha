@@ -97,6 +97,7 @@ var model = {
      */
     getTableInfo: function (data, callback) {
         var dataToSend = {};
+        var tableInfoToSend = {};
         dataToSend.maxRow = 100;
         dataToSend.filter = {
             type: "public"
@@ -114,14 +115,14 @@ var model = {
                 });
             },
             // Get Tables Bots Details from Database
-            function (data, callback) {
-                tableDataFromApi = data.data.results;
+            function (data1, callback) {
+                tableDataFromApi = data1.data.results;
                 // console.log("tableDataFromApi---", tableDataFromApi);
                 Tables.find({}).exec(callback);
             },
             // Combine the Data Together to find no of actual users
-            function (data, callback) {
-                tableDataFromDB = data;
+            function (data2, callback) {
+                tableDataFromDB = data2;
                 // console.log("tableDataFromDB---", tableDataFromDB);
                 _.each(tableDataFromApi, function (n) {
                     var sameTableFromDB = _.find(tableDataFromDB, function (m) {
@@ -138,35 +139,45 @@ var model = {
                 callback();
             },
             // run async eachLimit 10 for adding or removing
-            function (data, callback) {
+            function (callback) {
                 async.eachSeries(tableDataFromApi, function (n, callback) {
+                    tableInfoToSend.tableDetails = n;
+                    tableInfoToSend.botDetails = data;
                     // n.actualUsers ==1
                     if (n.actualUsers == 1) {
+                        console.log("1")
                         if (n.botCount == 0 || n.botCount == 1) {
-                            Bots.addBotToTable(n, callback);
+                            Bots.addSingleBotToTable(tableInfoToSend, callback);
                         } else if (n.botCount == 2) {
                             callback();
+                        } else {
+                            console.log("Going no where");
                         }
                     } else if (n.actualUsers == 2) {
+                        console.log("2")
                         if (n.botCount == 0 || n.botCount == 1) {
-                            Bots.addBotToTable(n, callback);
+                            Bots.addSingleBotToTable(tableInfoToSend, callback);
                         } else if (n.botCount == 2) {
                             callback();
                         }
                     } else if (n.actualUsers == 3) {
+                        console.log("3")
                         if (n.botCount == 0) {
-                            Bots.addBotToTable(n, callback);
+                            Bots.addSingleBotToTable(tableInfoToSend, callback);
                         } else if (n.botCount == 1) {
                             callback();
                         }
                     } else if (n.actualUsers == 4) {
+                        console.log("4")
                         if (n.botCount == 0) {
-                            Bots.addBotToTable(n, callback);
+                            Bots.addSingleBotToTable(tableInfoToSend, callback);
                         } else if (n.botCount == 1) {
                             callback();
                         }
                     } else if (n.actualUsers == 0) {
-                        Bots.removeBotFromEmptyTable(n, callback);
+                        console.log("0")
+                        // Bots.removeBotFromEmptyTable(n, callback);
+                        callback();
                     }
                 }, callback);
             }
@@ -1070,6 +1081,129 @@ var model = {
             ],
             callback);
     },
+
+    /**
+     *  search for free bots
+     * 
+     *  @param  {String} bot  data -   bot gameplay data.     
+     *  @returns  {callback} callback -   Return card data.
+     */
+    searchForFreeBots: function (data, callback) {
+        async.waterfall([
+                function (callback) {
+                    Bots.find({
+                        $or: [{
+                            "table": {
+                                $exists: false
+                            }
+                        }, {
+                            table: null
+                        }]
+                    }).exec(callback);
+                },
+                function (botData, callback) {
+                    // async.eachSeries(botData, function (n, callback) {
+                    var n = botData[0];
+                    Bots.getTableInfo(n, callback)
+                    // }, callback);
+                }
+            ],
+            callback);
+    },
+
+
+    /**
+     *  add single bot to table
+     * 
+     *  @param  {String} bot  data -   bot gameplay data.     
+     *  @returns  {callback} callback -   Return card data.
+     */
+    addSingleBotToTable: function (data, callback) {
+        // console.log("data------------------", data);
+        var tblData = {};
+        async.waterfall([
+                function (callback) {
+                    Tables.findOne({
+                        tableId: data.tableDetails._id
+                    }, callback)
+                },
+                //add bot to LocalsystmsDbTable
+                function (tablData, callback) {
+                    // console.log("tablData))))))))))))", tablData);
+                    if (tablData) {
+                        tblData = tablData;
+                        tablData.bots.push(data.botDetails._id)
+                        Tables.saveData(tablData, callback);
+                    } else {
+                        var tableDataToSave = {};
+                        tableDataToSave.tableId = data.tableDetails._id;
+                        tableDataToSave.json = data.tableDetails;
+                        tableDataToSave.bots = [];
+                        tableDataToSave.bots.push(data.botDetails._id);
+                        Tables.saveData(tableDataToSave, function (err, data2) {
+                            tblData = data2;
+                            callback(null, data2)
+                        });
+                    }
+                },
+                //save tableId to respective bot
+                function (tabData, callback) {
+                    // console.log("tabData", tabData);
+                    var botsData = {};
+                    botsData = data.botDetails;
+                    botsData.table = tblData._id;
+                    Bots.saveData(botsData, callback);
+                },
+                // getAll Data from server table
+                function (getAllData, callback) {
+                    var dataToSend = {};
+                    // dataToSend.accessToken = data.botDetails.accessToken;
+                    dataToSend.tableId = data.tableDetails._id;
+                    request.post({
+                        url: global["env"].testIp + 'Player/getAll',
+                        body: dataToSend,
+                        json: true
+                    }, function (error, response, body) {
+                        // console.log("body-----", body.data);
+                        callback(error, body);
+                    });
+                },
+                //add bot to tableOnServer
+                function (finalData, callback) {
+                    console.log("finalData", finalData.data.players);
+                    var arrNumber = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+                    var emptyPosition = [];
+                    emptyPosition = _.map(arrNumber, function (n) {
+                        var indx = _.findIndex(finalData.data.players, function (o) {
+                            return o.playerNo == n;
+                        });
+                        if (indx > -1) {
+                            return null
+                        } else {
+                            return n;
+                        };
+                    });
+
+                    var emptyNumArr = _.groupBy(emptyPosition, function (n) {
+                        return n != null
+                    })
+                    request.post({
+                        url: global["env"].testIp + 'Table/addUserToTable',
+                        body: {
+                            playerNo: emptyNumArr.true[0],
+                            tableId: tblData.tableId,
+                            socketId: socketId,
+                            accessToken: data.botDetails.accessToken
+                        },
+                        json: true
+                    }, function (error, response, body) {
+                        console.log("body-########----", body);
+                        callback(error, body);
+                    });
+                }
+            ],
+            callback);
+    },
 };
 
 /**
@@ -1078,10 +1212,10 @@ var model = {
  *  @param  {String} id -   specific market symbol.
  *  @returns  {callback} callback -   Return cancel order details.
  */
-cron.schedule('*/5 * * * * *', function () {
-    console.log("-")
-    model.getTableInfo();
-});
+// cron.schedule('*/5 * * * * *', function () {
+//     console.log("-")
+//     model.searchForFreeBots();
+// });
 
 socket.on('connect', function () {
     global.socketId = socket.io.engine.id;
