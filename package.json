@@ -68,8 +68,10 @@
     "sails-disk": "^0.10.10",
     "sails-wohlig-controller": "^0.0.4",
     "sails-wohlig-service": "^0.0.11",
+    "sails.io.js": "^1.2.1",
     "sendgrid": "^5.2.3",
     "skipper-gclouds": "^1.0.1",
+    "socket.io": "^2.1.0",
     "socket.io-client": "^2.1.0",
     "teenpattisolver": "^1.1.3"
   },

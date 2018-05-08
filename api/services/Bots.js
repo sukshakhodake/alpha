@@ -81,6 +81,10 @@ var model = {
                             botsData.balance = body.data.creditLimit;
                             botsData.botId = body.data._id;
                             botsData.accessToken = body.data.accessToken[0];
+                            // Push userid in allBots 
+                            var dataToPush = {};
+                            dataToPush._id = dataToUse;
+                            global.allBots.push(dataToPush);
                             Bots.saveData(botsData, function () {});
                         }
                     });
@@ -145,39 +149,32 @@ var model = {
                     tableInfoToSend.botDetails = data;
                     // n.actualUsers ==1
                     if (n.actualUsers == 1) {
-                        console.log("1")
                         if (n.botCount == 0 || n.botCount == 1) {
                             Bots.addSingleBotToTable(tableInfoToSend, callback);
                         } else if (n.botCount == 2) {
                             callback();
-                        } else {
-                            console.log("Going no where");
                         }
                     } else if (n.actualUsers == 2) {
-                        console.log("2")
                         if (n.botCount == 0 || n.botCount == 1) {
                             Bots.addSingleBotToTable(tableInfoToSend, callback);
                         } else if (n.botCount == 2) {
                             callback();
                         }
                     } else if (n.actualUsers == 3) {
-                        console.log("3")
                         if (n.botCount == 0) {
                             Bots.addSingleBotToTable(tableInfoToSend, callback);
                         } else if (n.botCount == 1) {
                             callback();
                         }
                     } else if (n.actualUsers == 4) {
-                        console.log("4")
                         if (n.botCount == 0) {
                             Bots.addSingleBotToTable(tableInfoToSend, callback);
                         } else if (n.botCount == 1) {
                             callback();
                         }
                     } else if (n.actualUsers == 0) {
-                        console.log("0")
-                        // Bots.removeBotFromEmptyTable(n, callback);
-                        callback();
+                        Bots.removeBotFromEmptyTable(n, callback);
+                        // callback();
                     }
                 }, callback);
             }
@@ -417,11 +414,11 @@ var model = {
     },
 
 
-    //socket
-    showWinnerFunction: function (data, callback) {
-        console.log("showWinnerFunction--", data);
-        Bots.removeBotAfterShowWinner(data.data, callback)
-    },
+    // //socket
+    // showWinnerFunction: function (data, callback) {
+    //     console.log("showWinnerFunction--", data);
+    //     Bots.removeBotAfterShowWinner(data.data, callback)
+    // },
 
 
     /**
@@ -483,6 +480,7 @@ var model = {
             callback);
     },
 
+
     deleteBot: function (data, callback) {
         async.eachSeries(data.bots, function (n, callback) {
             // console.log("data.tableId", data.tableId);
@@ -527,9 +525,9 @@ var model = {
      * 
      *  @returns  {callback} callback -   Return socket Data.
      */
-    updateSocketFunction: function (data, callback) {
-        Bots.botGamePlay(data.data, callback);
-    },
+    // updateSocketFunction: function (data, callback) {
+    //     Bots.botGamePlay(data.data, callback);
+    // },
 
 
     /**
@@ -539,7 +537,8 @@ var model = {
      *  @returns  {callback} callback -   Return game data.
      */
     botGamePlay: function (data, callback) {
-        if (data.extra.serve || data.extra.newGame) {
+        console.log("botGamePlay", data)
+        if (data.updatedSocketData.extra.serve || data.updatedSocketData.extra.newGame) {
             blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
             chalCount = 50;
             chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
@@ -548,120 +547,104 @@ var model = {
             chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
             chalCountHC = 2;
         } else {
-            async.waterfall([
-                    function (callback) {
-                        Bots.find({}, callback);
-                    },
-                    function (botsData, callback) {
-                        var dataForSeenCards = {};
-                        var dataToChaal = {};
-                        var blindStatus = _.find(data.players, function (m) {
-                            return m.isBlind == false;
-                        });
-                        async.eachSeries(data.players, function (n, callback) {
-                            var existingBot = _.find(botsData, function (m) {
-                                return m.botId == n.memberId;
+            var dataForSeenCards = {};
+            var dataToChaal = {};
+            var blindStatus = _.find(data.updatedSocketData.players, function (m) {
+                return m.isBlind == false;
+            });
+            var existingBotInSocket = _.find(data.updatedSocketData.players, function (m) {
+                return m.memberId == currentBotAdded.memberId;
+            });
+            if (existingBotInSocket.isTurn == true) {
+                // console.log("existingBotInSocket", existingBotInSocket);
+                // var blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
+                console.log("blindCount", blindCount);
+                if (_.isEmpty(blindStatus)) {
+                    if (blindCount > 0) {
+                        setTimeout(function () {
+                            request.post({
+                                url: global["env"].testIp + 'Player/chaal',
+                                body: {
+                                    tableId: existingBotInSocket.table,
+                                    accessToken: currentBotAdded.accessToken,
+                                    amount: data.updatedSocketData.minAmt
+                                },
+                                json: true
+                            }, function (error, response, body) {
+                                blindCount--;
+                                console.log("blindCount", blindCount);
+                                // console.log("body>>>>>>>--", body);
+                                callback(error, body);
                             });
-                            if (existingBot) {
-                                var existingBotInSocket = _.find(data.players, function (m) {
-                                    return m.memberId == existingBot.botId;
-                                });
-                                if (existingBotInSocket.isTurn == true) {
-                                    // console.log("existingBotInSocket", existingBotInSocket);
-                                    // var blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
-                                    console.log("blindCount", blindCount);
-                                    if (_.isEmpty(blindStatus)) {
-                                        if (blindCount > 0) {
-                                            setTimeout(function () {
-                                                request.post({
-                                                    url: global["env"].testIp + 'Player/chaal',
-                                                    body: {
-                                                        tableId: existingBotInSocket.table,
-                                                        accessToken: existingBot.accessToken,
-                                                        amount: data.minAmt
-                                                    },
-                                                    json: true
-                                                }, function (error, response, body) {
-                                                    blindCount--;
-                                                    console.log("blindCount", blindCount);
-                                                    // console.log("body>>>>>>>--", body);
-                                                    callback(error, body);
-                                                });
-                                            }, 3000);
-                                        } else {
-                                            request.post({
-                                                url: global["env"].testIp + 'Player/makeSeen',
-                                                body: {
-                                                    tableId: existingBotInSocket.table,
-                                                    accessToken: existingBot.accessToken,
-                                                },
-                                                json: true
-                                            }, function (error, response, body) {
-                                                callback(error, body);
-                                            });
-                                        }
-                                    } else {
-                                        // console.log("existingBotInSocket@@@@@@@@@@@@", existingBotInSocket);
-                                        if (existingBotInSocket.isBlind == true) {
-                                            request.post({
-                                                url: global["env"].testIp + 'Player/makeSeen',
-                                                body: {
-                                                    tableId: existingBotInSocket.table,
-                                                    accessToken: existingBot.accessToken,
-                                                },
-                                                json: true
-                                            }, function (error, response, body) {
-                                                callback(error, body);
-                                            });
-                                        } else {
-                                            var dataToCheckCards = {};
-                                            if (data.gameType.evaluateFunc == 'scoreHandsNormal') {
-                                                dataToCheckCards.type = 'scoreHandsNormal';
-                                                dataToCheckCards.botData = existingBotInSocket;
-                                                dataToCheckCards.minAmt = data.minAmt;
-                                                dataToCheckCards.maxAmt = data.maxAmt;
-                                                dataToCheckCards.accessToken = existingBot.accessToken;
-                                                dataToCheckCards.handNormal = teenPattiScore.scoreHandsNormal(existingBotInSocket.cards);
-                                                Bots.checkCards(dataToCheckCards, callback);
-                                            } else if (data.gameType.evaluateFunc == 'scoreHandsTwo') {
-                                                dataToCheckCards.botData = existingBotInSocket;
-                                                dataToCheckCards.minAmt = data.minAmt;
-                                                dataToCheckCards.maxAmt = data.maxAmt;
-                                                dataToCheckCards.accessToken = existingBot.accessToken;
-                                                dataToCheckCards.handNormal = teenPattiScore.scoreHandsTwo(existingBotInSocket.cards);
-                                                Bots.checkCards(dataToCheckCards, callback);
-                                            } else if (data.gameType.evaluateFunc == 'scoreHandsFour') {
-                                                dataToCheckCards.botData = existingBotInSocket;
-                                                dataToCheckCards.minAmt = data.minAmt;
-                                                dataToCheckCards.maxAmt = data.maxAmt;
-                                                dataToCheckCards.accessToken = existingBot.accessToken;
-                                                dataToCheckCards.handNormal = teenPattiScore.scoreHandsFour(existingBotInSocket.cards);
-                                                Bots.checkCards(dataToCheckCards, callback);
-                                            } else if (data.gameType.evaluateFunc == 'scoreHandsLowest') {
-                                                dataToCheckCards.botData = existingBotInSocket;
-                                                dataToCheckCards.minAmt = data.minAmt;
-                                                dataToCheckCards.maxAmt = data.maxAmt;
-                                                dataToCheckCards.accessToken = existingBot.accessToken;
-                                                dataToCheckCards.handNormal = teenPattiScore.scoreHandsLowest(existingBotInSocket.cards);
-                                                Bots.checkCards(dataToCheckCards, callback);
-                                            } else if (data.gameType.evaluateFunc == 'scoreHandsJoker') {
-                                                dataToCheckCards.botData = existingBotInSocket;
-                                                dataToCheckCards.minAmt = data.minAmt;
-                                                dataToCheckCards.maxAmt = data.maxAmt;
-                                                dataToCheckCards.accessToken = existingBot.accessToken;
-                                                dataToCheckCards.handNormal = teenPattiScore.scoreHandsJoker(existingBotInSocket.cards);
-                                                Bots.checkCards(dataToCheckCards, callback);
-                                            }
-                                        }
-                                    }
-                                }
-                            } else {
-                                callback();
-                            }
-                        }, callback);
+                        }, 3000);
+                    } else {
+                        request.post({
+                            url: global["env"].testIp + 'Player/makeSeen',
+                            body: {
+                                tableId: existingBotInSocket.table,
+                                accessToken: currentBotAdded.accessToken,
+                            },
+                            json: true
+                        }, function (error, response, body) {
+                            callback(error, body);
+                        });
                     }
-                ],
-                callback);
+                } else {
+                    // console.log("existingBotInSocket@@@@@@@@@@@@", existingBotInSocket);
+                    if (existingBotInSocket.isBlind == true) {
+                        request.post({
+                            url: global["env"].testIp + 'Player/makeSeen',
+                            body: {
+                                tableId: existingBotInSocket.table,
+                                accessToken: currentBotAdded.accessToken,
+                            },
+                            json: true
+                        }, function (error, response, body) {
+                            callback(error, body);
+                        });
+                    } else {
+                        var dataToCheckCards = {};
+                        if (data.gameType.evaluateFunc == 'scoreHandsNormal') {
+                            dataToCheckCards.type = 'scoreHandsNormal';
+                            dataToCheckCards.botData = existingBotInSocket;
+                            dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
+                            dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
+                            dataToCheckCards.accessToken = currentBotAdded.accessToken;
+                            dataToCheckCards.handNormal = teenPattiScore.scoreHandsNormal(existingBotInSocket.cards);
+                            Bots.checkCards(dataToCheckCards, callback);
+                        } else if (data.gameType.evaluateFunc == 'scoreHandsTwo') {
+                            dataToCheckCards.botData = existingBotInSocket;
+                            dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
+                            dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
+                            dataToCheckCards.accessToken = currentBotAdded.accessToken;
+                            dataToCheckCards.handNormal = teenPattiScore.scoreHandsTwo(existingBotInSocket.cards);
+                            Bots.checkCards(dataToCheckCards, callback);
+                        } else if (data.gameType.evaluateFunc == 'scoreHandsFour') {
+                            dataToCheckCards.botData = existingBotInSocket;
+                            dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
+                            dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
+                            dataToCheckCards.accessToken = currentBotAdded.accessToken;
+                            dataToCheckCards.handNormal = teenPattiScore.scoreHandsFour(existingBotInSocket.cards);
+                            Bots.checkCards(dataToCheckCards, callback);
+                        } else if (data.gameType.evaluateFunc == 'scoreHandsLowest') {
+                            dataToCheckCards.botData = existingBotInSocket;
+                            dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
+                            dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
+                            dataToCheckCards.accessToken = currentBotAdded.accessToken;
+                            dataToCheckCards.handNormal = teenPattiScore.scoreHandsLowest(existingBotInSocket.cards);
+                            Bots.checkCards(dataToCheckCards, callback);
+                        } else if (data.gameType.evaluateFunc == 'scoreHandsJoker') {
+                            dataToCheckCards.botData = existingBotInSocket;
+                            dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
+                            dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
+                            dataToCheckCards.accessToken = currentBotAdded.accessToken;
+                            dataToCheckCards.handNormal = teenPattiScore.scoreHandsJoker(existingBotInSocket.cards);
+                            Bots.checkCards(dataToCheckCards, callback);
+                        }
+                    }
+                }
+            }
+
         }
     },
 
@@ -875,10 +858,10 @@ var model = {
 
 
     //socket
-    sideShowSocket: function (data, callback) {
-        // console.log("sideShowSocket--", data);
-        Bots.sideShowLogic(data.data, callback);
-    },
+    // sideShowSocket: function (data, callback) {
+    //     // console.log("sideShowSocket--", data);
+    //     Bots.sideShowLogic(data.data, callback);
+    // },
 
     /**
      *  side show logic
@@ -1043,19 +1026,19 @@ var model = {
     },
 
     //socket
-    removePlayerSocket: function (data, callback) {
+    removePlayer: function (data, callback) {
         console.log("removePlayerSocket--+++++++++++++", data);
         var localData = {};
         async.waterfall([
                 function (callback) {
                     Tables.findOne({
-                        tableId: data.data.table
+                        tableId: data.table
                     }).deepPopulate('bots').exec(callback);
                 },
                 function (tableData, callback) {
                     localData = tableData;
                     var isPre = _.remove(tableData.bots, function (x) {
-                        return x.botId == data.data.memberId
+                        return x.botId == data.memberId
                     })
                     if (!_.isEmpty(tableData.bots)) {
                         var dataToSave = {};
@@ -1070,7 +1053,7 @@ var model = {
                 },
                 function (tbData, callback) {
                     Bots.findOne({
-                        botId: data.data.memberId
+                        botId: data.memberId
                     }).exec(function (err, data1) {
                         var dataToRemove = {};
                         dataToRemove.table = null;
@@ -1091,7 +1074,7 @@ var model = {
     searchForFreeBots: function (data, callback) {
         async.waterfall([
                 function (callback) {
-                    Bots.find({
+                    Bots.findOne({
                         $or: [{
                             "table": {
                                 $exists: false
@@ -1103,9 +1086,10 @@ var model = {
                 },
                 function (botData, callback) {
                     // async.eachSeries(botData, function (n, callback) {
-                    var n = botData[0];
-                    Bots.getTableInfo(n, callback)
+                    // var n = botData[0];
+                    // Bots.getTableInfo(n, callback)
                     // }, callback);
+                    Bots.getTableInfo(botData, callback);
                 }
             ],
             callback);
@@ -1129,7 +1113,6 @@ var model = {
                 },
                 //add bot to LocalsystmsDbTable
                 function (tablData, callback) {
-                    // console.log("tablData))))))))))))", tablData);
                     if (tablData) {
                         tblData = tablData;
                         tablData.bots.push(data.botDetails._id)
@@ -1198,7 +1181,64 @@ var model = {
                         json: true
                     }, function (error, response, body) {
                         console.log("body-########----", body);
+                        var updateSocket = function (data, callback) {
+                            // user id will be provided
+                            var allBotDataToSend = {};
+                            allBotDataToSend.currentBotAdded = body.data;
+                            allBotDataToSend.updatedSocketData = data.data;
+                            Bots.botGamePlay(allBotDataToSend, callback);
+                        }
+                        socket.on("Update", updateSocket);
+
+                        var value = _.find(global.allBots, function (n) {
+                            return _.isEqual(n._id, data.botDetails._id);
+                        })
+
+                        console.log("value", value);
+
+                        value.update = updateSocket;
+
+                        //for show winnner
+
+                        var showWinnerSocket = function (data, callback) {
+                            Bots.removeBotAfterShowWinner(data.data, callback)
+                        }
+                        socket.on("showWinner", showWinnerSocket);
+
+                        var value1 = _.find(global.allBots, function (n) {
+                            return _.isEqual(n._id, data.botDetails._id)
+                        });
+
+                        value1.showWinner = showWinnerSocket;
+
+                        //for side show
+
+                        var sideShowSocket = function (data, callback) {
+                            Bots.sideShowLogic(data.data, callback);
+                        }
+                        socket.on("sideShow", sideShowSocket);
+
+                        var value2 = _.find(global.allBots, function (n) {
+                            return _.isEqual(n._id, data.botDetails._id)
+                        });
+
+                        value2.sideShow = sideShowSocket;
+
+                        //for remove 
+
+                        var removePlayerSocket = function (data, callback) {
+                            Bots.removePlayer(data.data, function () {});
+                        }
+                        socket.on("removePlayer", removePlayerSocket);
+
+                        var value3 = _.find(global.allBots, function (n) {
+                            return _.isEqual(n._id, data.botDetails._id)
+                        });
+
+                        value3.removePlayer = removePlayerSocket;
+
                         callback(error, body);
+
                     });
                 }
             ],
@@ -1217,17 +1257,31 @@ var model = {
 //     model.searchForFreeBots();
 // });
 
+
 socket.on('connect', function () {
     global.socketId = socket.io.engine.id;
+    // console.log("***************", global.socketId = socket.io.engine.id);
 });
 
-socket.on("Update", model.updateSocketFunction);
+sails.on("ready", function () {
+    Bots.find({}, {
+        _id: 1
+    }).exec(function (err, data) {
+        global.allBots = data;
+    });
+});
 
-socket.on("showWinner", model.showWinnerFunction);
 
-socket.on("sideShow", model.sideShowSocket);
+// socket1.disconnect()
 
-socket.on("removePlayer", model.removePlayerSocket);
+
+// socket.on("Update", model.updateSocketFunction);
+
+// socket.on("showWinner", model.showWinnerFunction);
+
+// socket.on("sideShow", model.sideShowSocket);
+
+// socket.on("removePlayer", model.removePlayerSocket);
 
 
 module.exports = _.assign(module.exports, exports, model);
