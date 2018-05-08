@@ -553,7 +553,7 @@ var model = {
                 return m.isBlind == false;
             });
             var existingBotInSocket = _.find(data.updatedSocketData.players, function (m) {
-                return m.memberId == currentBotAdded.memberId;
+                return m.memberId == data.currentBotAdded.memberId;
             });
             if (existingBotInSocket.isTurn == true) {
                 // console.log("existingBotInSocket", existingBotInSocket);
@@ -566,7 +566,7 @@ var model = {
                                 url: global["env"].testIp + 'Player/chaal',
                                 body: {
                                     tableId: existingBotInSocket.table,
-                                    accessToken: currentBotAdded.accessToken,
+                                    accessToken: data.currentBotAdded.accessToken,
                                     amount: data.updatedSocketData.minAmt
                                 },
                                 json: true
@@ -582,7 +582,7 @@ var model = {
                             url: global["env"].testIp + 'Player/makeSeen',
                             body: {
                                 tableId: existingBotInSocket.table,
-                                accessToken: currentBotAdded.accessToken,
+                                accessToken: data.currentBotAdded.accessToken,
                             },
                             json: true
                         }, function (error, response, body) {
@@ -596,7 +596,7 @@ var model = {
                             url: global["env"].testIp + 'Player/makeSeen',
                             body: {
                                 tableId: existingBotInSocket.table,
-                                accessToken: currentBotAdded.accessToken,
+                                accessToken: data.currentBotAdded.accessToken,
                             },
                             json: true
                         }, function (error, response, body) {
@@ -609,35 +609,35 @@ var model = {
                             dataToCheckCards.botData = existingBotInSocket;
                             dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
                             dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
-                            dataToCheckCards.accessToken = currentBotAdded.accessToken;
+                            dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
                             dataToCheckCards.handNormal = teenPattiScore.scoreHandsNormal(existingBotInSocket.cards);
                             Bots.checkCards(dataToCheckCards, callback);
                         } else if (data.gameType.evaluateFunc == 'scoreHandsTwo') {
                             dataToCheckCards.botData = existingBotInSocket;
                             dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
                             dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
-                            dataToCheckCards.accessToken = currentBotAdded.accessToken;
+                            dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
                             dataToCheckCards.handNormal = teenPattiScore.scoreHandsTwo(existingBotInSocket.cards);
                             Bots.checkCards(dataToCheckCards, callback);
                         } else if (data.gameType.evaluateFunc == 'scoreHandsFour') {
                             dataToCheckCards.botData = existingBotInSocket;
                             dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
                             dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
-                            dataToCheckCards.accessToken = currentBotAdded.accessToken;
+                            dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
                             dataToCheckCards.handNormal = teenPattiScore.scoreHandsFour(existingBotInSocket.cards);
                             Bots.checkCards(dataToCheckCards, callback);
                         } else if (data.gameType.evaluateFunc == 'scoreHandsLowest') {
                             dataToCheckCards.botData = existingBotInSocket;
                             dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
                             dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
-                            dataToCheckCards.accessToken = currentBotAdded.accessToken;
+                            dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
                             dataToCheckCards.handNormal = teenPattiScore.scoreHandsLowest(existingBotInSocket.cards);
                             Bots.checkCards(dataToCheckCards, callback);
                         } else if (data.gameType.evaluateFunc == 'scoreHandsJoker') {
                             dataToCheckCards.botData = existingBotInSocket;
                             dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
                             dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
-                            dataToCheckCards.accessToken = currentBotAdded.accessToken;
+                            dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
                             dataToCheckCards.handNormal = teenPattiScore.scoreHandsJoker(existingBotInSocket.cards);
                             Bots.checkCards(dataToCheckCards, callback);
                         }
