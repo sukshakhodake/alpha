@@ -122,7 +122,7 @@ var model = {
             function (data1, callback) {
                 tableDataFromApi = data1.data.results;
                 // console.log("tableDataFromApi---", tableDataFromApi);
-                Tables.find({}).exec(callback);
+                Tables.find({}).deepPopulate('bots').exec(callback);
             },
             // Combine the Data Together to find no of actual users
             function (data2, callback) {
@@ -135,6 +135,7 @@ var model = {
                     if (sameTableFromDB) {
                         n.botCount = sameTableFromDB.bots.length;
                         n.actualUsers = n.noOfPlayers - n.botCount;
+                        n.localTableDetails = sameTableFromDB;
                     } else {
                         n.botCount = 0;
                         n.actualUsers = n.noOfPlayers;
@@ -427,7 +428,7 @@ var model = {
      *  @param  {String} table data -   table data.     
      *  @returns  {callback} callback -   Return table Data.
      */
-    removeBotAfterShowWinner: function (data, callback) {
+    removeBotAfterShowWinner: function (data) {
         var localTableData = {};
         async.waterfall([
                 //find a tble from localDb
@@ -477,7 +478,7 @@ var model = {
                     }
                 }
             ],
-            callback);
+            function () {});
     },
 
 
@@ -536,117 +537,256 @@ var model = {
      *  @param  {String} socket data -   socket data.     
      *  @returns  {callback} callback -   Return game data.
      */
-    botGamePlay: function (data, callback) {
-        console.log("botGamePlay", data)
-        if (data.updatedSocketData.extra.serve || data.updatedSocketData.extra.newGame) {
-            blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
-            chalCount = 50;
-            chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
-            chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
-            chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
-            chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
-            chalCountHC = 2;
-        } else {
-            var dataForSeenCards = {};
-            var dataToChaal = {};
-            var blindStatus = _.find(data.updatedSocketData.players, function (m) {
-                return m.isBlind == false;
+    botGamePlay: function (data) {
+        // console.log("botGamePlay", data);
+        var isTurn = _.find(data.updatedSocketData.players, function (m) {
+            return m.isTurn == true;
+        });
+        if (isTurn) {
+            var presentBotData = _.find(data.botsPresent, function (n) {
+                return n.botId == isTurn.memberId;
             });
-            var existingBotInSocket = _.find(data.updatedSocketData.players, function (m) {
-                return m.memberId == data.currentBotAdded.memberId;
-            });
-            if (existingBotInSocket.isTurn == true) {
-                // console.log("existingBotInSocket", existingBotInSocket);
-                // var blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
-                console.log("blindCount", blindCount);
-                if (_.isEmpty(blindStatus)) {
-                    if (blindCount > 0) {
-                        setTimeout(function () {
-                            request.post({
-                                url: global["env"].testIp + 'Player/chaal',
-                                body: {
-                                    tableId: existingBotInSocket.table,
-                                    accessToken: data.currentBotAdded.accessToken,
-                                    amount: data.updatedSocketData.minAmt
-                                },
-                                json: true
-                            }, function (error, response, body) {
-                                blindCount--;
-                                console.log("blindCount", blindCount);
-                                // console.log("body>>>>>>>--", body);
-                                callback(error, body);
-                            });
-                        }, 3000);
-                    } else {
-                        request.post({
-                            url: global["env"].testIp + 'Player/makeSeen',
-                            body: {
-                                tableId: existingBotInSocket.table,
-                                accessToken: data.currentBotAdded.accessToken,
-                            },
-                            json: true
-                        }, function (error, response, body) {
-                            callback(error, body);
-                        });
-                    }
+            if (presentBotData) {
+                if (data.updatedSocketData.extra.serve || data.updatedSocketData.extra.newGame) {
+                    // callback();
+                    var value = _.find(global.allBots, function (n) {
+                        return _.isEqual(n.botId, presentBotData.botId);
+                    })
+                    value.blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
+                    value.chalCount = 50;
+                    value.chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
+                    value.chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
+                    value.chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
+                    value.chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
+                    value.chalCountHC = 2;
                 } else {
-                    // console.log("existingBotInSocket@@@@@@@@@@@@", existingBotInSocket);
-                    if (existingBotInSocket.isBlind == true) {
-                        request.post({
-                            url: global["env"].testIp + 'Player/makeSeen',
-                            body: {
-                                tableId: existingBotInSocket.table,
-                                accessToken: data.currentBotAdded.accessToken,
-                            },
-                            json: true
-                        }, function (error, response, body) {
-                            callback(error, body);
-                        });
-                    } else {
-                        var dataToCheckCards = {};
-                        if (data.gameType.evaluateFunc == 'scoreHandsNormal') {
-                            dataToCheckCards.type = 'scoreHandsNormal';
-                            dataToCheckCards.botData = existingBotInSocket;
-                            dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
-                            dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
-                            dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
-                            dataToCheckCards.handNormal = teenPattiScore.scoreHandsNormal(existingBotInSocket.cards);
-                            Bots.checkCards(dataToCheckCards, callback);
-                        } else if (data.gameType.evaluateFunc == 'scoreHandsTwo') {
-                            dataToCheckCards.botData = existingBotInSocket;
-                            dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
-                            dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
-                            dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
-                            dataToCheckCards.handNormal = teenPattiScore.scoreHandsTwo(existingBotInSocket.cards);
-                            Bots.checkCards(dataToCheckCards, callback);
-                        } else if (data.gameType.evaluateFunc == 'scoreHandsFour') {
-                            dataToCheckCards.botData = existingBotInSocket;
-                            dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
-                            dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
-                            dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
-                            dataToCheckCards.handNormal = teenPattiScore.scoreHandsFour(existingBotInSocket.cards);
-                            Bots.checkCards(dataToCheckCards, callback);
-                        } else if (data.gameType.evaluateFunc == 'scoreHandsLowest') {
-                            dataToCheckCards.botData = existingBotInSocket;
-                            dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
-                            dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
-                            dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
-                            dataToCheckCards.handNormal = teenPattiScore.scoreHandsLowest(existingBotInSocket.cards);
-                            Bots.checkCards(dataToCheckCards, callback);
-                        } else if (data.gameType.evaluateFunc == 'scoreHandsJoker') {
-                            dataToCheckCards.botData = existingBotInSocket;
-                            dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
-                            dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
-                            dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
-                            dataToCheckCards.handNormal = teenPattiScore.scoreHandsJoker(existingBotInSocket.cards);
-                            Bots.checkCards(dataToCheckCards, callback);
+                    var dataForSeenCards = {};
+                    var dataToChaal = {};
+                    var blindStatus = _.find(data.updatedSocketData.players, function (m) {
+                        return m.isBlind == false;
+                    });
+                    var value = _.find(global.allBots, function (n) {
+                        return _.isEqual(n.botId, presentBotData.botId);
+                    });
+                    if (value) {
+                        console.log("blindCount", value.blindCount);
+                        if (_.isEmpty(blindStatus)) {
+                            if (value.blindCount > 0) {
+                                setTimeout(function () {
+                                    request.post({
+                                        url: global["env"].testIp + 'Player/chaal',
+                                        body: {
+                                            tableId: isTurn.table,
+                                            accessToken: presentBotData.accessToken,
+                                            amount: data.updatedSocketData.minAmt
+                                        },
+                                        json: true
+                                    }, function (error, response, body) {
+                                        value.blindCount--;
+                                        console.log("value.blindCount", value.blindCount);
+                                        // console.log("body>>>>>>>--", body);
+                                        // callback(error, body);
+                                    });
+                                }, 3000);
+                            } else {
+                                request.post({
+                                    url: global["env"].testIp + 'Player/makeSeen',
+                                    body: {
+                                        tableId: isTurn.table,
+                                        accessToken: presentBotData.accessToken,
+                                    },
+                                    json: true
+                                }, function (error, response, body) {
+                                    // callback(error, body);
+                                });
+                            }
+                        } else {
+                            if (isTurn.isBlind == true) {
+                                request.post({
+                                    url: global["env"].testIp + 'Player/makeSeen',
+                                    body: {
+                                        tableId: isTurn.table,
+                                        accessToken: presentBotData.accessToken,
+                                    },
+                                    json: true
+                                }, function (error, response, body) {
+                                    // callback(error, body);
+                                });
+                            } else {
+                                var dataToCheckCards = {};
+                                if (data.updatedSocketData.gameType.evaluateFunc == 'scoreHandsNormal') {
+                                    dataToCheckCards.type = 'scoreHandsNormal';
+                                    dataToCheckCards.botData = isTurn;
+                                    dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
+                                    dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
+                                    dataToCheckCards.accessToken = presentBotData.accessToken;
+                                    dataToCheckCards.handNormal = teenPattiScore.scoreHandsNormal(isTurn.cards);
+                                    dataToCheckCards.values = value;
+                                    Bots.checkCards(dataToCheckCards, function () {});
+                                } else if (data.updatedSocketData.gameType.evaluateFunc == 'scoreHandsTwo') {
+                                    dataToCheckCards.botData = isTurn;
+                                    dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
+                                    dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
+                                    dataToCheckCards.accessToken = presentBotData.accessToken;
+                                    dataToCheckCards.handNormal = teenPattiScore.scoreHandsTwo(isTurn.cards);
+                                    dataToCheckCards.values = value;
+                                    Bots.checkCards(dataToCheckCards, function () {});
+                                } else if (data.updatedSocketData.gameType.evaluateFunc == 'scoreHandsFour') {
+                                    dataToCheckCards.botData = isTurn;
+                                    dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
+                                    dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
+                                    dataToCheckCards.accessToken = presentBotData.accessToken;
+                                    dataToCheckCards.handNormal = teenPattiScore.scoreHandsFour(isTurn.cards);
+                                    dataToCheckCards.values = value;
+                                    Bots.checkCards(dataToCheckCards, function () {});
+                                } else if (data.updatedSocketData.gameType.evaluateFunc == 'scoreHandsLowest') {
+                                    dataToCheckCards.botData = isTurn;
+                                    dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
+                                    dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
+                                    dataToCheckCards.accessToken = presentBotData.accessToken;
+                                    dataToCheckCards.handNormal = teenPattiScore.scoreHandsLowest(isTurn.cards);
+                                    dataToCheckCards.values = value;
+                                    Bots.checkCards(dataToCheckCards, function () {});
+                                } else if (data.updatedSocketData.gameType.evaluateFunc == 'scoreHandsJoker') {
+                                    dataToCheckCards.botData = isTurn;
+                                    dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
+                                    dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
+                                    dataToCheckCards.accessToken = presentBotData.accessToken;
+                                    dataToCheckCards.handNormal = teenPattiScore.scoreHandsJoker(isTurn.cards);
+                                    dataToCheckCards.values = value;
+                                    Bots.checkCards(dataToCheckCards, function () {});
+                                }
+                            }
                         }
+
                     }
                 }
             }
-
         }
+        // if (data.updatedSocketData.extra.serve || data.updatedSocketData.extra.newGame) {
+        //     // callback();
+        //     var value = _.find(global.allBots, function (n) {
+        //         return _.isEqual(n.botId, data.currentBotAdded.memberId);
+        //     })
+        //     value.blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
+        //     value.chalCount = 50;
+        //     value.chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
+        //     value.chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
+        //     value.chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
+        //     value.chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
+        //     value.chalCountHC = 2;
+        // } else {
+        //     var dataForSeenCards = {};
+        //     var dataToChaal = {};
+        //     var blindStatus = _.find(data.updatedSocketData.players, function (m) {
+        //         return m.isBlind == false;
+        //     });
+
+        //     //find in localtables bot
+        //     var existingBotInSocket = _.find(data.updatedSocketData.players, function (m) {
+        //         return m.memberId == data.currentBotAdded.memberId;
+        //     });
+        //     var value = _.find(global.allBots, function (n) {
+        //         return _.isEqual(n.botId, data.currentBotAdded.memberId);
+        //     })
+        //     if (existingBotInSocket.isTurn == true) {
+        //         console.log("existingBotInSocket", existingBotInSocket);
+        //         // var blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
+        //         console.log("blindCount", value.blindCount);
+        //         if (_.isEmpty(blindStatus)) {
+        //             if (value.blindCount > 0) {
+        //                 setTimeout(function () {
+        //                     request.post({
+        //                         url: global["env"].testIp + 'Player/chaal',
+        //                         body: {
+        //                             tableId: existingBotInSocket.table,
+        //                             accessToken: data.currentBotAdded.accessToken,
+        //                             amount: data.updatedSocketData.minAmt
+        //                         },
+        //                         json: true
+        //                     }, function (error, response, body) {
+        //                         value.blindCount--;
+        //                         console.log("value.blindCount", value.blindCount);
+        //                         // console.log("body>>>>>>>--", body);
+        //                         // callback(error, body);
+        //                     });
+        //                 }, 3000);
+        //             } else {
+        //                 request.post({
+        //                     url: global["env"].testIp + 'Player/makeSeen',
+        //                     body: {
+        //                         tableId: existingBotInSocket.table,
+        //                         accessToken: data.currentBotAdded.accessToken,
+        //                     },
+        //                     json: true
+        //                 }, function (error, response, body) {
+        //                     // callback(error, body);
+        //                 });
+        //             }
+        //         } else {
+        //             // console.log("existingBotInSocket@@@@@@@@@@@@", existingBotInSocket);
+        //             if (existingBotInSocket.isBlind == true) {
+        //                 request.post({
+        //                     url: global["env"].testIp + 'Player/makeSeen',
+        //                     body: {
+        //                         tableId: existingBotInSocket.table,
+        //                         accessToken: data.currentBotAdded.accessToken,
+        //                     },
+        //                     json: true
+        //                 }, function (error, response, body) {
+        //                     // callback(error, body);
+        //                 });
+        //             } else {
+        //                 var dataToCheckCards = {};
+        //                 if (data.updatedSocketData.gameType.evaluateFunc == 'scoreHandsNormal') {
+        //                     dataToCheckCards.type = 'scoreHandsNormal';
+        //                     dataToCheckCards.botData = existingBotInSocket;
+        //                     dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
+        //                     dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
+        //                     dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
+        //                     dataToCheckCards.handNormal = teenPattiScore.scoreHandsNormal(existingBotInSocket.cards);
+        //                     dataToCheckCards.values = value;
+        //                     Bots.checkCards(dataToCheckCards, function () {});
+        //                 } else if (data.updatedSocketData.gameType.evaluateFunc == 'scoreHandsTwo') {
+        //                     dataToCheckCards.botData = existingBotInSocket;
+        //                     dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
+        //                     dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
+        //                     dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
+        //                     dataToCheckCards.handNormal = teenPattiScore.scoreHandsTwo(existingBotInSocket.cards);
+        //                     dataToCheckCards.values = value;
+        //                     Bots.checkCards(dataToCheckCards, function () {});
+        //                 } else if (data.updatedSocketData.gameType.evaluateFunc == 'scoreHandsFour') {
+        //                     dataToCheckCards.botData = existingBotInSocket;
+        //                     dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
+        //                     dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
+        //                     dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
+        //                     dataToCheckCards.handNormal = teenPattiScore.scoreHandsFour(existingBotInSocket.cards);
+        //                     dataToCheckCards.values = value;
+        //                     Bots.checkCards(dataToCheckCards, function () {});
+        //                 } else if (data.updatedSocketData.gameType.evaluateFunc == 'scoreHandsLowest') {
+        //                     dataToCheckCards.botData = existingBotInSocket;
+        //                     dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
+        //                     dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
+        //                     dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
+        //                     dataToCheckCards.handNormal = teenPattiScore.scoreHandsLowest(existingBotInSocket.cards);
+        //                     dataToCheckCards.values = value;
+        //                     Bots.checkCards(dataToCheckCards, function () {});
+        //                 } else if (data.updatedSocketData.gameType.evaluateFunc == 'scoreHandsJoker') {
+        //                     dataToCheckCards.botData = existingBotInSocket;
+        //                     dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
+        //                     dataToCheckCards.maxAmt = data.updatedSocketData.maxAmt;
+        //                     dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
+        //                     dataToCheckCards.handNormal = teenPattiScore.scoreHandsJoker(existingBotInSocket.cards);
+        //                     dataToCheckCards.values = value;
+        //                     Bots.checkCards(dataToCheckCards, function () {});
+        //                 }
+        //             }
+        //         }
+        //     }
+
+        // }
     },
+
 
     /**
      *  match cards types
@@ -657,7 +797,7 @@ var model = {
     checkCards: function (data, callback) {
         console.log("data--", data)
         if (data.handNormal.name == 'Trio') {
-            if (chalCount > 0) {
+            if (data.values.chalCount > 0) {
                 setTimeout(function () {
                     request.post({
                         url: global["env"].testIp + 'Player/chaal',
@@ -668,7 +808,8 @@ var model = {
                         },
                         json: true
                     }, function (error, response, body) {
-                        chalCount--;
+                        data.values.chalCount--;
+                        console.log("chalCount", data.values.chalCount);
                         callback(error, body);
                     });
                 }, 3000);
@@ -683,14 +824,14 @@ var model = {
                         json: true
                     }, function (error, response, body) {
                         // chalCount = 50;
-                        console.log("chalCount", chalCount);
+                        console.log("chalCount", data.values.chalCount);
                         callback(error, body);
                     });
                 }, 3000);
             }
         } else if (data.handNormal.name == 'Pure Sequence') {
             // chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
-            if (chalCountPS > 0) {
+            if (data.values.chalCountPS > 0) {
                 setTimeout(function () {
                     request.post({
                         url: global["env"].testIp + 'Player/chaal',
@@ -701,8 +842,8 @@ var model = {
                         },
                         json: true
                     }, function (error, response, body) {
-                        chalCountPS--;
-                        console.log("chalCountPS", chalCountPS);
+                        data.values.chalCountPS--;
+                        console.log("chalCountPS", data.values.chalCountPS);
                         callback(error, body);
                     });
                 }, 3000);
@@ -723,7 +864,7 @@ var model = {
             }
         } else if (data.handNormal.name == 'Sequence') {
             // chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
-            if (chalCountS > 0) {
+            if (data.values.chalCountS > 0) {
                 setTimeout(function () {
                     request.post({
                         url: global["env"].testIp + 'Player/chaal',
@@ -734,8 +875,8 @@ var model = {
                         },
                         json: true
                     }, function (error, response, body) {
-                        chalCountS--;
-                        console.log("chalCountS", chalCountS);
+                        data.values.chalCountS--;
+                        console.log("chalCountS", data.values.chalCountS);
                         callback(error, body);
                     });
                 }, 3000);
@@ -756,7 +897,7 @@ var model = {
             }
         } else if (data.handNormal.name == 'Color') {
             // chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
-            if (chalCountC > 0) {
+            if (data.values.chalCountC > 0) {
                 setTimeout(function () {
                     request.post({
                         url: global["env"].testIp + 'Player/chaal',
@@ -767,8 +908,8 @@ var model = {
                         },
                         json: true
                     }, function (error, response, body) {
-                        chalCountC--;
-                        console.log("chalCountC", chalCountC);
+                        data.values.chalCountC--;
+                        console.log("chalCountC", data.values.chalCountC);
                         callback(error, body);
                     });
                 }, 3000);
@@ -789,7 +930,7 @@ var model = {
             }
         } else if (data.handNormal.name == 'Pair') {
             // chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
-            if (chalCountP > 0) {
+            if (data.values.chalCountP > 0) {
                 setTimeout(function () {
                     request.post({
                         url: global["env"].testIp + 'Player/chaal',
@@ -800,8 +941,8 @@ var model = {
                         },
                         json: true
                     }, function (error, response, body) {
-                        chalCountP--;
-                        console.log("chalCountP", chalCountP);
+                        data.values.chalCountP--;
+                        console.log("chalCountP", data.values.chalCountP);
                         callback(error, body);
                     });
                 }, 3000);
@@ -822,7 +963,7 @@ var model = {
             }
         } else if (data.handNormal.name == 'High Card') {
             // chalCountHC = Math.floor(Math.random() * (1 - 0 + 1)) + 1;
-            if (chalCountHC > 0) {
+            if (data.values.chalCountHC > 0) {
                 setTimeout(function () {
                     request.post({
                         url: global["env"].testIp + 'Player/chaal',
@@ -833,8 +974,8 @@ var model = {
                         },
                         json: true
                     }, function (error, response, body) {
-                        chalCountHC--;
-                        console.log("chalCountHC", chalCountHC);
+                        data.values.chalCountHC--;
+                        console.log("chalCountHC", data.values.chalCountHC);
                         callback(error, body);
                     });
                 }, 3000);
@@ -869,7 +1010,7 @@ var model = {
      *  @param  {String} bot  data -   bot gameplay data.     
      *  @returns  {callback} callback -   Return card data.
      */
-    sideShowLogic: function (data, callback) {
+    sideShowLogic: function (data) {
         console.log("data--", data);
         var localTableData = {};
         async.waterfall([
@@ -933,7 +1074,7 @@ var model = {
                     }
                 }
             ],
-            callback);
+            function () {});
     },
 
     /**
@@ -1026,7 +1167,7 @@ var model = {
     },
 
     //socket
-    removePlayer: function (data, callback) {
+    removePlayer: function (data) {
         console.log("removePlayerSocket--+++++++++++++", data);
         var localData = {};
         async.waterfall([
@@ -1062,7 +1203,7 @@ var model = {
                     });
                 }
             ],
-            callback);
+            function () {});
     },
 
     /**
@@ -1103,20 +1244,14 @@ var model = {
      *  @returns  {callback} callback -   Return card data.
      */
     addSingleBotToTable: function (data, callback) {
-        // console.log("data------------------", data);
-        var tblData = {};
+        console.log("data------------------", data);
+        var tblData = {}
         async.waterfall([
                 function (callback) {
-                    Tables.findOne({
-                        tableId: data.tableDetails._id
-                    }, callback)
-                },
-                //add bot to LocalsystmsDbTable
-                function (tablData, callback) {
-                    if (tablData) {
-                        tblData = tablData;
-                        tablData.bots.push(data.botDetails._id)
-                        Tables.saveData(tablData, callback);
+                    if (data.tableDetails.localTableDetails) {
+                        tblData = data.tableDetails.localTableDetails;
+                        tblData.bots.push(data.botDetails._id)
+                        Tables.saveData(tblData, callback);
                     } else {
                         var tableDataToSave = {};
                         tableDataToSave.tableId = data.tableDetails._id;
@@ -1153,7 +1288,7 @@ var model = {
                 },
                 //add bot to tableOnServer
                 function (finalData, callback) {
-                    console.log("finalData", finalData.data.players);
+                    // console.log("finalData", finalData.data.players);
                     var arrNumber = [1, 2, 3, 4, 5, 6, 7, 8, 9];
                     var emptyPosition = [];
                     emptyPosition = _.map(arrNumber, function (n) {
@@ -1180,13 +1315,16 @@ var model = {
                         },
                         json: true
                     }, function (error, response, body) {
-                        console.log("body-########----", body);
-                        var updateSocket = function (data, callback) {
+                        // console.log("body-########----", body);
+                        callback(error, body);
+
+                        var updateSocket = function (data) {
                             // user id will be provided
                             var allBotDataToSend = {};
+                            allBotDataToSend.botsPresent = tblData.bots;
                             allBotDataToSend.currentBotAdded = body.data;
                             allBotDataToSend.updatedSocketData = data.data;
-                            Bots.botGamePlay(allBotDataToSend, callback);
+                            Bots.botGamePlay(allBotDataToSend);
                         }
                         socket.on("Update", updateSocket);
 
@@ -1197,48 +1335,52 @@ var model = {
                         console.log("value", value);
 
                         value.update = updateSocket;
+                        value.blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
+                        value.chalCount = 50;
+                        value.chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
+                        value.chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
+                        value.chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
+                        value.chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
+                        value.chalCountHC = 2;
 
-                        //for show winnner
+                        // //for show winnner
 
-                        var showWinnerSocket = function (data, callback) {
-                            Bots.removeBotAfterShowWinner(data.data, callback)
-                        }
-                        socket.on("showWinner", showWinnerSocket);
+                        // var showWinnerSocket = function (data) {
+                        //     Bots.removeBotAfterShowWinner(data.data)
+                        // }
+                        // socket.on("showWinner", showWinnerSocket);
 
-                        var value1 = _.find(global.allBots, function (n) {
-                            return _.isEqual(n._id, data.botDetails._id)
-                        });
+                        // var value1 = _.find(global.allBots, function (n) {
+                        //     return _.isEqual(n._id, data.botDetails._id)
+                        // });
 
-                        value1.showWinner = showWinnerSocket;
+                        // value1.showWinner = showWinnerSocket;
 
-                        //for side show
+                        // //for side show
 
-                        var sideShowSocket = function (data, callback) {
-                            Bots.sideShowLogic(data.data, callback);
-                        }
-                        socket.on("sideShow", sideShowSocket);
+                        // var sideShowSocket = function (data) {
+                        //     Bots.sideShowLogic(data.data);
+                        // }
+                        // socket.on("sideShow", sideShowSocket);
 
-                        var value2 = _.find(global.allBots, function (n) {
-                            return _.isEqual(n._id, data.botDetails._id)
-                        });
+                        // var value2 = _.find(global.allBots, function (n) {
+                        //     return _.isEqual(n._id, data.botDetails._id)
+                        // });
 
-                        value2.sideShow = sideShowSocket;
+                        // value2.sideShow = sideShowSocket;
 
-                        //for remove 
+                        // //for remove 
 
-                        var removePlayerSocket = function (data, callback) {
-                            Bots.removePlayer(data.data, function () {});
-                        }
-                        socket.on("removePlayer", removePlayerSocket);
+                        // var removePlayerSocket = function (data) {
+                        //     Bots.removePlayer(data.data);
+                        // }
+                        // socket.on("removePlayer", removePlayerSocket);
 
-                        var value3 = _.find(global.allBots, function (n) {
-                            return _.isEqual(n._id, data.botDetails._id)
-                        });
+                        // var value3 = _.find(global.allBots, function (n) {
+                        //     return _.isEqual(n._id, data.botDetails._id)
+                        // });
 
-                        value3.removePlayer = removePlayerSocket;
-
-                        callback(error, body);
-
+                        // value3.removePlayer = removePlayerSocket;
                     });
                 }
             ],
@@ -1263,25 +1405,14 @@ socket.on('connect', function () {
     // console.log("***************", global.socketId = socket.io.engine.id);
 });
 
+
 sails.on("ready", function () {
     Bots.find({}, {
+        botId: 1,
         _id: 1
     }).exec(function (err, data) {
         global.allBots = data;
     });
 });
-
-
-// socket1.disconnect()
-
-
-// socket.on("Update", model.updateSocketFunction);
-
-// socket.on("showWinner", model.showWinnerFunction);
-
-// socket.on("sideShow", model.sideShowSocket);
-
-// socket.on("removePlayer", model.removePlayerSocket);
-
 
 module.exports = _.assign(module.exports, exports, model);

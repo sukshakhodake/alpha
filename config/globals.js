@@ -73,13 +73,14 @@ mongoose.connect(mongourl, {
 global.socketId;
 global.socket = require('socket.io-client')('http://teenpatti.kingplay.online');
 global.teenPattiScore = require("teenpattisolver");
-global.blindCount;
-global.chalCount;
-global.chalCountPS;
-global.chalCountS;
-global.chalCountC;
-global.chalCountP;
-global.chalCountHC;
+
+// global.blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
+// global.chalCount = 50;
+// global.chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
+// global.chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
+// global.chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
+// global.chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
+// global.chalCountHC = 2;
 
 
 
