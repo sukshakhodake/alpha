@@ -122,7 +122,7 @@ var model = {
             function (data1, callback) {
                 tableDataFromApi = data1.data.results;
                 // console.log("tableDataFromApi---", tableDataFromApi);
-                Tables.find({}).deepPopulate('bots').exec(callback);
+                Tables.find({}).lean().exec(callback);
             },
             // Combine the Data Together to find no of actual users
             function (data2, callback) {
@@ -148,6 +148,7 @@ var model = {
                 async.eachSeries(tableDataFromApi, function (n, callback) {
                     tableInfoToSend.tableDetails = n;
                     tableInfoToSend.botDetails = data;
+                    console.log("tableInfoToSend", tableInfoToSend)
                     // n.actualUsers ==1
                     if (n.actualUsers == 1) {
                         if (n.botCount == 0 || n.botCount == 1) {
@@ -538,14 +539,16 @@ var model = {
      *  @returns  {callback} callback -   Return game data.
      */
     botGamePlay: function (data) {
-        // console.log("botGamePlay", data);
+        console.log("botGamePlay", data);
         var isTurn = _.find(data.updatedSocketData.players, function (m) {
             return m.isTurn == true;
         });
+        console.log("isTurn", isTurn);
         if (isTurn) {
             var presentBotData = _.find(data.botsPresent, function (n) {
                 return n.botId == isTurn.memberId;
             });
+            console.log("presentBotData", presentBotData);
             if (presentBotData) {
                 if (data.updatedSocketData.extra.serve || data.updatedSocketData.extra.newGame) {
                     // callback();
@@ -568,6 +571,7 @@ var model = {
                     var value = _.find(global.allBots, function (n) {
                         return _.isEqual(n.botId, presentBotData.botId);
                     });
+                    console.log("value inside GamePlay", value);
                     if (value) {
                         console.log("blindCount", value.blindCount);
                         if (_.isEmpty(blindStatus)) {
@@ -795,7 +799,7 @@ var model = {
      *  @returns  {callback} callback -   Return card data.
      */
     checkCards: function (data, callback) {
-        console.log("data--", data)
+        // console.log("data--", data)
         if (data.handNormal.name == 'Trio') {
             if (data.values.chalCount > 0) {
                 setTimeout(function () {
@@ -1249,18 +1253,29 @@ var model = {
         async.waterfall([
                 function (callback) {
                     if (data.tableDetails.localTableDetails) {
-                        tblData = data.tableDetails.localTableDetails;
-                        tblData.bots.push(data.botDetails._id)
-                        Tables.saveData(tblData, callback);
+                        var updateTblData = {};
+                        updateTblData = data.tableDetails.localTableDetails;
+                        updateTblData.bots.push(data.botDetails._id);
+                        Tables.saveData(updateTblData, function (err, tdata) {
+                            Tables.findOne({
+                                _id: updateTblData._id
+                            }).deepPopulate('bots').lean().exec(function (err, dd) {
+                                tblData = dd;
+                                callback(null, dd);
+                            })
+                        });
                     } else {
                         var tableDataToSave = {};
                         tableDataToSave.tableId = data.tableDetails._id;
                         tableDataToSave.json = data.tableDetails;
                         tableDataToSave.bots = [];
                         tableDataToSave.bots.push(data.botDetails._id);
-                        Tables.saveData(tableDataToSave, function (err, data2) {
-                            tblData = data2;
-                            callback(null, data2)
+                        const table = new Tables(tableDataToSave);
+                        table.save().then(table => {
+                            table.populate('bots', function (err, order) {
+                                tblData = order;
+                                callback(null, order)
+                            });
                         });
                     }
                 },
@@ -1322,7 +1337,7 @@ var model = {
                             // user id will be provided
                             var allBotDataToSend = {};
                             allBotDataToSend.botsPresent = tblData.bots;
-                            allBotDataToSend.currentBotAdded = body.data;
+                            // allBotDataToSend.currentBotAdded = body.data;
                             allBotDataToSend.updatedSocketData = data.data;
                             Bots.botGamePlay(allBotDataToSend);
                         }
@@ -1332,8 +1347,6 @@ var model = {
                             return _.isEqual(n._id, data.botDetails._id);
                         })
 
-                        console.log("value", value);
-
                         value.update = updateSocket;
                         value.blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
                         value.chalCount = 50;
@@ -1342,6 +1355,9 @@ var model = {
                         value.chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
                         value.chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
                         value.chalCountHC = 2;
+
+                        console.log("valueIN ADD", value);
+
 
                         // //for show winnner
 
