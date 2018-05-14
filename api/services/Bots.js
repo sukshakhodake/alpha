@@ -423,77 +423,120 @@ var model = {
      *  @returns  {callback} callback -   Return table Data.
      */
     removeBotAfterShowWinner: function (data) {
-        console.log("removeBotAfterShowWinner", data);
         var localTableData = {};
-        async.waterfall([
-                //find a tble from localDb
-                function (callback) {
-                    Tables.findOne({
-                        tableId: data.pot.table
-                    }).deepPopulate('bots').exec(callback);
-                },
-                // remove bots from respective table on server
-                function (tabData, callback) {
-                    var botLength = tabData.bots.length;
-                    var playersLength = data.players.length;
-                    var actualPlayerLength = playersLength - botLength;
-                    if (actualPlayerLength >= 5 && botLength >= 1) {
-                        Bots.deleteBot(tabData, callback)
-                    } else if (actualPlayerLength == 4 && botLength > 1) {
-                        _.pullAt(tabData.bots, 0);
-                        Bots.deleteBot(tabData, callback)
-                    } else if (actualPlayerLength == 3 && botLength > 1) {
-                        _.pullAt(tabData.bots, 0);
-                        Bots.deleteBot(tabData, callback)
-                    } else if (actualPlayerLength == 2 && botLength > 2) {
-                        _.pullAt(tabData.bots, [0, 1]);
-                        Bots.deleteBot(tabData, callback)
-                    } else if (actualPlayerLength == 1 && botLength > 2) {
-                        _.pullAt(tabData.bots, [0, 1]);
-                        Bots.deleteBot(tabData, callback)
+        var botsToRemove = {};
+        var dataForRemoveBot = {};
+
+        vshowWinnerPreviousPotAmt = -1;
+        var showWinnerCurrentPotAmt = data.pot.totalAmount;
+        if (global.showWinnerPreviousPotAmt != showWinnerCurrentPotAmt) {
+            global.showWinnerPreviousPotAmt = showWinnerCurrentPotAmt;
+            // console.log("removeBotAfterShowWinner", data);
+            async.waterfall([
+                    //find a tble from localDb
+                    function (callback) {
+                        Tables.findOne({
+                            tableId: data.pot.table
+                        }).deepPopulate('bots').exec(callback);
+                    },
+                    function (test, callback) {
+                        localTableData = test;
+                        request.post({
+                            url: global["env"].testIp + 'Player/getAll',
+                            body: {
+                                tableId: data.pot.table,
+                            },
+                            json: true
+                        }, function (error, response, body) {
+                            console.log("body", body)
+                            callback(error, body);
+                        });
+                    },
+                    // remove bots from respective table on server
+                    function (tabData, callback) {
+                        var botLength = localTableData.bots.length;
+                        var playersLength = tabData.data.players.length;
+                        var actualPlayerLength = playersLength - botLength;
+                        if (actualPlayerLength >= 5 && botLength >= 1) {
+                            dataForRemoveBot.bots = localTableData.bots;
+                            dataForRemoveBot.localTableData = localTableData;
+                            dataForRemoveBot.isDelete = true;
+                            Bots.deleteBot(dataForRemoveBot, callback);
+                        } else if (actualPlayerLength == 4 && botLength > 1) {
+                            botsToRemove = localTableData.bots.splice(0, localTableData.bots.length - 1);
+                            dataForRemoveBot.bots = botsToRemove;
+                            dataForRemoveBot.localTableData = localTableData;
+                            Bots.deleteBot(dataForRemoveBot, callback);
+                        } else if (actualPlayerLength == 3 && botLength > 1) {
+                            botsToRemove = localTableData.bots.splice(0, localTableData.bots.length - 1);
+                            dataForRemoveBot.bots = botsToRemove;
+                            dataForRemoveBot.localTableData = localTableData;
+                            Bots.deleteBot(dataForRemoveBot, callback);
+                        } else if (actualPlayerLength == 2 && botLength > 1) {
+                            // console.log("actualPlayerLength == 2 && botLength > 1");
+                            botsToRemove = localTableData.bots.splice(0, localTableData.bots.length - 1);
+                            dataForRemoveBot.bots = botsToRemove;
+                            dataForRemoveBot.localTableData = localTableData;
+                            Bots.deleteBot(dataForRemoveBot, callback);
+                        } else if (actualPlayerLength == 1 && botLength > 2) {
+                            botsToRemove = localTableData.bots.splice(0, localTableData.bots.length - 2);
+                            dataForRemoveBot.bots = botsToRemove;
+                            dataForRemoveBot.localTableData = localTableData;
+                            Bots.deleteBot(dataForRemoveBot, callback);
+                        }
                     }
-                }
-            ],
-            function () {});
+                ],
+                function () {});
+        }
     },
 
 
     deleteBot: function (data, callback) {
-        async.eachSeries(data.bots, function (n, callback) {
-            // console.log("data.tableId", data.tableId);
-            // console.log("n.accessToken", n.accessToken)
-            async.waterfall([
-                    function (callback) {
-                        request.post({
-                            url: global["env"].testIp + 'Player/deletePlayer',
-                            body: {
-                                tableId: data.tableId,
-                                accessToken: n.accessToken
-                            },
-                            json: true
-                        }, function (error, response, body) {
-                            console.log("body-----------", body);
-                            callback(error, body);
-                        });
-                    },
-                    function (test, callback) {
+        // console.log("In Delete Function ", data);
+        async.waterfall([
+                function (callback) {
+                    if (data.isDelete) {
                         Tables.deleteData({
-                            _id: data._id
+                            _id: data.localTableData._id
                         }, callback);
-                    },
-                    function (test, callback) {
-                        Bots.findOne({
-                            _id: n._id
-                        }).exec(function (err, data1) {
-                            var dataToSave = {};
-                            dataToSave._id = n._id;
-                            dataToSave.table = null;
-                            Bots.saveData(dataToSave, callback);
-                        });
+                    } else {
+                        Tables.saveData(data.localTableData, callback);
                     }
-                ],
-                callback);
-        }, callback);
+                },
+                function (testData, callback) {
+                    async.eachSeries(data.bots, function (n, callback) {
+                        // console.log(" data.localTableData.tableId", data.localTableData.tableId);
+                        // console.log("n.accessToken", n.accessToken);
+                        async.waterfall([
+                                function (callback) {
+                                    request.post({
+                                        url: global["env"].testIp + 'Player/deletePlayer',
+                                        body: {
+                                            tableId: data.localTableData.tableId,
+                                            accessToken: n.accessToken
+                                        },
+                                        json: true
+                                    }, function (error, response, body) {
+                                        console.log("body-----------", body);
+                                        callback(error, body);
+                                    });
+                                },
+                                function (test, callback) {
+                                    Bots.findOne({
+                                        _id: n._id
+                                    }).exec(function (err, data1) {
+                                        var dataToSave = {};
+                                        dataToSave._id = n._id;
+                                        dataToSave.table = null;
+                                        Bots.saveData(dataToSave, callback);
+                                    });
+                                }
+                            ],
+                            callback);
+                    }, callback);
+                }
+            ],
+            callback);
     },
 
     /**
