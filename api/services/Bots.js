@@ -448,7 +448,7 @@ var model = {
                             },
                             json: true
                         }, function (error, response, body) {
-                            console.log("body", body)
+                            // console.log("body", body)
                             callback(error, body);
                         });
                     },
@@ -507,6 +507,9 @@ var model = {
                     async.eachSeries(data.bots, function (n, callback) {
                         // console.log(" data.localTableData.tableId", data.localTableData.tableId);
                         // console.log("n.accessToken", n.accessToken);
+                        var indexValue = _.findIndex(global.allBots, function (o) {
+                            return _.isEqual(o.botId, n.botId);
+                        });
                         async.waterfall([
                                 function (callback) {
                                     request.post({
@@ -517,7 +520,7 @@ var model = {
                                         },
                                         json: true
                                     }, function (error, response, body) {
-                                        console.log("body-----------", body);
+                                        // console.log("body-----------", body);
                                         callback(error, body);
                                     });
                                 },
@@ -525,6 +528,11 @@ var model = {
                                     Bots.findOne({
                                         _id: n._id
                                     }).exec(function (err, data1) {
+                                        socket.off("Update_" + data.localTableData.tableId, global.allBots[indexValue].update);
+                                        socket.off("sideShow_" + data.localTableData.tableId, global.allBots[indexValue].sideShow);
+                                        socket.off("removePlayer_" + data.localTableData.tableId, global.allBots[indexValue].removePlayer);
+                                        socket.off("showWinner_" + data.localTableData.tableId, global.allBots[indexValue].showWinner);
+
                                         var dataToSave = {};
                                         dataToSave._id = n._id;
                                         dataToSave.table = null;
@@ -889,7 +897,6 @@ var model = {
      */
     sideShowLogic: function (playerId, data) {
         // console.log("data--", data);
-        console.log("playerId--", playerId);
         var indexValue = _.findIndex(global.allBots, function (o) {
             return _.isEqual(o.botId, data.toPlayer.memberId);
         });
@@ -909,7 +916,8 @@ var model = {
                 function (tabData, callback) {
                     if (data.toPlayer.memberId == playerId && global.allBots[indexValue].lastSideShowAmount != currentAmountForSideShow) {
                         global.allBots[indexValue].lastSideShowAmount = currentAmountForSideShow;
-                        console.log("inside", data.toPlayer);
+                        // console.log("inside", data.toPlayer);
+                        console.log("playerId--", playerId);
                         if (data.toPlayer.cards[0] == '') {
                             global.allBots[indexValue].lastSideShowAmount = -1;
                         } else {
@@ -1044,7 +1052,7 @@ var model = {
      *  @returns  {callback} callback -   Return card data.
      */
     removePlayer: function (data) {
-        console.log("removePlayerSocket--+++++++++++++", data);
+        // console.log("removePlayerSocket--+++++++++++++", data);
         var localData = {};
         async.waterfall([
                 function (callback) {
@@ -1106,6 +1114,8 @@ var model = {
                     // var n = botData[0];
                     // Bots.getTableInfo(n, callback)
                     // }, callback);
+                    // console.log("getTableInfo", botData);
+                    // iferr
                     Bots.getTableInfo(botData, callback);
                 }
             ],
@@ -1194,6 +1204,12 @@ var model = {
                     var emptyNumArr = _.groupBy(emptyPosition, function (n) {
                         return n != null
                     })
+
+                    // console.log("emptyNumArr.true[0]", emptyNumArr.true[0]);
+                    // console.log(" tblData.tableId", tblData.tableId);
+                    // console.log("socketId", socketId);
+                    // console.log("data.botDetails.accessToken", data.botDetails.accessToken);
+
                     request.post({
                         url: global["env"].testIp + 'Table/addUserToTable',
                         body: {
@@ -1208,54 +1224,61 @@ var model = {
                             return _.isEqual(o._id, data.botDetails._id);
                         });
 
-                        console.log("memberID", body.data.memberId)
+                        // console.log("body", body);
+                        // console.log("error", error);
 
                         callback(error, body);
 
-                        var updateSocket = function (usData) {
-                            var allBotDataToSend = {};
-                            // allBotDataToSend.botsPresent = tblData.bots;
-                            allBotDataToSend.currentBotAdded = body.data;
-                            allBotDataToSend.updatedSocketData = usData.data;
-                            // console.log("body.data.memberId", body.data)
-                            Bots.botGamePlay(body.data.memberId, allBotDataToSend);
+                        if (body.data) {
+                            console.log("memberID", body.data.memberId)
+
+                            console.log("tblData.tableId", tblData.tableId)
+
+                            var updateSocket = function (usData) {
+                                var allBotDataToSend = {};
+                                // allBotDataToSend.botsPresent = tblData.bots;
+                                allBotDataToSend.currentBotAdded = body.data;
+                                allBotDataToSend.updatedSocketData = usData.data;
+                                // console.log("body.data.memberId", body.data)
+                                Bots.botGamePlay(body.data.memberId, allBotDataToSend);
+                            }
+                            socket.on("Update_" + tblData.tableId, updateSocket);
+
+                            //for side show
+
+                            var sideShowSocket = function (data) {
+                                Bots.sideShowLogic(body.data.memberId, data.data);
+                            }
+                            socket.on("sideShow_" + tblData.tableId, sideShowSocket);
+
+                            //for remove 
+
+                            var removePlayerSocket = function (data) {
+                                Bots.removePlayer(data.data);
+                            }
+                            socket.on("removePlayer_" + tblData.tableId, removePlayerSocket);
+
+                            //for show winnner
+
+                            var showWinnerSocket = function (data) {
+                                Bots.removeBotAfterShowWinner(data.data)
+                            }
+                            socket.on("showWinner_" + tblData.tableId, showWinnerSocket);
+
+                            var m = global.allBots[indexValue];
+                            m.update = updateSocket;
+                            m.sideShow = sideShowSocket;
+                            m.removePlayer = removePlayerSocket;
+                            m.showWinner = showWinnerSocket;
+                            m.blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
+                            m.chalCount = 50;
+                            m.chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
+                            m.chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
+                            m.chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
+                            m.chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
+                            m.chalCountHC = 2;
+                            // console.log("global.allBots[indexValue]", global.allBots[indexValue])
                         }
-                        socket.on("Update", updateSocket);
-
-                        //for side show
-
-                        var sideShowSocket = function (data) {
-                            Bots.sideShowLogic(body.data.memberId, data.data);
-                        }
-                        socket.on("sideShow", sideShowSocket);
-
-                        //for remove 
-
-                        var removePlayerSocket = function (data) {
-                            Bots.removePlayer(data.data);
-                        }
-                        socket.on("removePlayer", removePlayerSocket);
-
-                        //for show winnner
-
-                        var showWinnerSocket = function (data) {
-                            Bots.removeBotAfterShowWinner(data.data)
-                        }
-                        socket.on("showWinner", showWinnerSocket);
-
-                        var m = global.allBots[indexValue];
-                        m.update = updateSocket;
-                        m.sideShow = sideShowSocket;
-                        m.removePlayer = removePlayerSocket;
-                        m.showWinner = showWinnerSocket;
-                        m.blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
-                        m.chalCount = 50;
-                        m.chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
-                        m.chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
-                        m.chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
-                        m.chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
-                        m.chalCountHC = 2;
-                        // console.log("global.allBots[indexValue]", global.allBots[indexValue])
                     });
                 }
             ],
