@@ -968,7 +968,7 @@ var model = {
                     // var n = botData[0];
                     // Bots.getTableInfo(n, callback)
                     // }, callback);
-                    console.log("getTableInfo", botData);
+                    // console.log("getTableInfo", botData);
                     Bots.getTableInfo(botData, callback);
                 }
             ],
@@ -1176,10 +1176,10 @@ var model = {
  *  @param  {String} id -   specific market symbol.
  *  @returns  {callback} callback -   Return cancel order details.
  */
-cron.schedule('*/5 * * * * *', function () {
-    console.log("********cron****");
-    model.searchForFreeBots();
-});
+// cron.schedule('*/5 * * * * *', function () {
+//     console.log("********cron****");
+//     model.searchForFreeBots();
+// });
 
 
 socket.on('connect', function () {
