@@ -1169,10 +1169,10 @@ var model = {
  *  @param  {String} id -   specific market symbol.
  *  @returns  {callback} callback -   Return cancel order details.
  */
-cron.schedule('*/5 * * * * *', function () {
-    console.log("********cron****");
-    model.searchForFreeBots();
-});
+// cron.schedule('*/5 * * * * *', function () {
+//     console.log("********cron****");
+//     model.searchForFreeBots();
+// });
 
 
 socket.on('connect', function () {
