@@ -174,9 +174,12 @@ var model = {
                         } else if (n.botCount == 1) {
                             callback();
                         }
-                    } else if (n.actualUsers == 0 && n.botCount > 0) {
-                        Bots.removeBotFromEmptyTable(n, callback);
-                        // callback();
+                    } else if (n.actualUsers == 0) {
+                        if (n.botCount > 0) {
+                            Bots.removeBotFromEmptyTable(n, callback);
+                        } else if (n.botCount == 0) {
+                            callback();
+                        }
                     } else {
                         callback();
                     }
