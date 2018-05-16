@@ -968,7 +968,7 @@ var model = {
                     // var n = botData[0];
                     // Bots.getTableInfo(n, callback)
                     // }, callback);
-                    // console.log("getTableInfo", botData);
+                    console.log("getTableInfo", botData);
                     Bots.getTableInfo(botData, callback);
                 }
             ],
