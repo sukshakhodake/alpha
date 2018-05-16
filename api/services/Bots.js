@@ -174,7 +174,7 @@ var model = {
                         } else if (n.botCount == 1) {
                             callback();
                         }
-                    } else if (n.actualUsers == 0) {
+                    } else if (n.actualUsers == 0 && n.botCount > 0) {
                         Bots.removeBotFromEmptyTable(n, callback);
                         // callback();
                     }
@@ -191,6 +191,7 @@ var model = {
      *  @returns  {callback} callback -   Return table Data.
      */
     removeBotFromEmptyTable: function (data, callback) {
+        console.log("removeBotFromEmptyTable", removeBotFromEmptyTable)
         async.waterfall([
                 function (callback) {
                     request.post({
