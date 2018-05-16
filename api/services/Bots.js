@@ -232,7 +232,7 @@ var model = {
                                                     json: true
                                                 }, function (error, response, body) {
                                                     callback(error, body);
-                                                    console.log("removeBotFromEmptyTable111", body)
+                                                    // console.log("removeBotFromEmptyTable111", body)
                                                 });
                                             },
                                             function (tData, callback) {
@@ -249,8 +249,8 @@ var model = {
                                                 socket.off("removePlayer_" + n.table, global.allBots[indexValue].removePlayer);
                                                 socket.off("showWinner_" + n.table, global.allBots[indexValue].showWinner);
                                                 _.pullAt(global.allBots, indexValue);
-                                                // console.log("removeBotFromEmptyTable222");
                                                 Bots.saveData(dataToSave, callback);
+                                                console.log("Last");
                                             }
                                         ],
                                         callback);
