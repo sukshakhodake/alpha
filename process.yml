@@ -1,6 +1,6 @@
 apps:
   - script: "app.js"
-    name: "teenpattiBot"
+    name: "teenpattiBot-82"
     watch: false
     args: "--prod"
     exec_mode: "cluster"
