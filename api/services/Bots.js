@@ -1170,7 +1170,7 @@ var model = {
  *  @returns  {callback} callback -   Return cancel order details.
  */
 cron.schedule('*/5 * * * * *', function () {
-    console.log("******************cron****************")
+    console.log("********cron****");
     model.searchForFreeBots();
 });
 
