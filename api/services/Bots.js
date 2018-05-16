@@ -194,6 +194,7 @@ var model = {
      */
     removeBotFromEmptyTable: function (data, callback) {
         // console.log("removeBotFromEmptyTable", data)
+        var botsData = {};
         async.waterfall([
                 function (callback) {
                     request.post({
@@ -208,7 +209,6 @@ var model = {
                 },
                 function (playersData, callback) {
                     // console.log("playersData", playersData);
-                    var botsData = {};
                     async.eachSeries(playersData.data.players, function (n, callback1) {
                         var indexValue = _.findIndex(global.allBots, function (o) {
                             return _.isEqual(o.botId, n.memberId);
@@ -246,17 +246,17 @@ var model = {
                                         _.pullAt(global.allBots, indexValue);
                                         Bots.saveData(dataToSave, callback);
                                         console.log("Last");
-                                    },
-                                    function (tData, callback) {
-                                        Tables.deleteData({
-                                            _id: botsData.table
-                                        }, callback);
-                                    },
+                                    }
                                 ], callback);
                             },
                         ], callback1);
                     }, callback);
-                }
+                },
+                function (tData, callback) {
+                    Tables.deleteData({
+                        _id: botsData.table
+                    }, callback);
+                },
             ],
             callback);
     },
