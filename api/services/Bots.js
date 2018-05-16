@@ -252,9 +252,7 @@ var model = {
             function (tData, callback) {
                 Tables.deleteData({
                     _id: botsData.table
-                }, function (err, delData) {
-                    callback();
-                });
+                }, callback);
             }
         ], callback);
     },
@@ -983,159 +981,162 @@ var model = {
     addSingleBotToTable: function (data, callback) {
         // console.log("data------------------", data);
         var tblData = {};
-        async.waterfall([
-                function (callback) {
-                    if (data.tableDetails.localTableDetails) {
-                        var updateTblData = {};
-                        updateTblData = data.tableDetails.localTableDetails;
-                        updateTblData.bots.push(data.botDetails._id);
-                        Tables.findOneAndUpdate({
-                            _id: updateTblData._id
-                        }, {
-                            bots: updateTblData.bots
-                        }, {
-                            new: true
-                        }).deepPopulate('bots').exec(function (err, dd) {
-                            tblData = dd;
-                            callback(null, dd);
-                        });
-                    } else {
-                        var tableDataToSave = {};
-                        tableDataToSave.tableId = data.tableDetails._id;
-                        tableDataToSave.json = data.tableDetails;
-                        tableDataToSave.bots = [];
-                        tableDataToSave.bots.push(data.botDetails._id);
-                        const table = new Tables(tableDataToSave);
-                        table.save().then(table => {
-                            table.populate('bots', function (err, order) {
-                                tblData = order;
-                                callback(null, order)
+        if (data.botDetails) {
+            async.waterfall([
+                    function (callback) {
+                        if (data.tableDetails.localTableDetails) {
+                            var updateTblData = {};
+                            updateTblData = data.tableDetails.localTableDetails;
+                            updateTblData.bots.push(data.botDetails._id);
+                            Tables.findOneAndUpdate({
+                                _id: updateTblData._id
+                            }, {
+                                bots: updateTblData.bots
+                            }, {
+                                new: true
+                            }).deepPopulate('bots').exec(function (err, dd) {
+                                tblData = dd;
+                                callback(null, dd);
                             });
+                        } else {
+                            var tableDataToSave = {};
+                            tableDataToSave.tableId = data.tableDetails._id;
+                            tableDataToSave.json = data.tableDetails;
+                            tableDataToSave.bots = [];
+                            tableDataToSave.bots.push(data.botDetails._id);
+                            const table = new Tables(tableDataToSave);
+                            table.save().then(table => {
+                                table.populate('bots', function (err, order) {
+                                    tblData = order;
+                                    callback(null, order)
+                                });
+                            });
+                        }
+                    },
+                    //save tableId to respective bot
+                    function (tabData, callback) {
+                        // console.log("tabData", tabData);
+                        var botsData = {};
+                        botsData = data.botDetails;
+                        botsData.table = tblData._id;
+                        Bots.saveData(botsData, callback);
+                    },
+                    // getAll Data from server table
+                    function (getAllData, callback) {
+                        var dataToSend = {};
+                        // dataToSend.accessToken = data.botDetails.accessToken;
+                        dataToSend.tableId = data.tableDetails._id;
+                        request.post({
+                            url: global["env"].testIp + 'Player/getAll',
+                            body: dataToSend,
+                            json: true
+                        }, function (error, response, body) {
+                            // console.log("body-----", body.data);
+                            callback(error, body);
+                        });
+                    },
+                    //add bot to tableOnServer
+                    function (finalData, callback) {
+                        // console.log("finalData", finalData.data.players);
+                        var arrNumber = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+                        var emptyPosition = [];
+                        emptyPosition = _.map(arrNumber, function (n) {
+                            var indx = _.findIndex(finalData.data.players, function (o) {
+                                return o.playerNo == n;
+                            });
+                            if (indx > -1) {
+                                return null
+                            } else {
+                                return n;
+                            };
+                        });
+
+                        var emptyNumArr = _.groupBy(emptyPosition, function (n) {
+                            return n != null
+                        });
+
+                        // console.log("emptyNumArr.true[0]", emptyNumArr.true[0]);
+                        // console.log(" tblData.tableId", tblData.tableId);
+                        // console.log("socketId", socketId);
+                        // console.log("data.botDetails.accessToken", data.botDetails.accessToken);
+
+                        request.post({
+                            url: global["env"].testIp + 'Table/addUserToTable',
+                            body: {
+                                playerNo: emptyNumArr.true[0],
+                                tableId: tblData.tableId,
+                                socketId: socketId,
+                                accessToken: data.botDetails.accessToken
+                            },
+                            json: true
+                        }, function (error, response, body) {
+                            var indexValue = _.findIndex(global.allBots, function (o) {
+                                return _.isEqual(o._id, data.botDetails._id);
+                            });
+
+                            callback(error, body);
+
+                            // console.log("body???????????????????", body);
+                            // console.log("error>>>>>>>>>>>>>>>>", error);
+
+                            if (body.data) {
+                                console.log("memberID", body.data.memberId)
+
+                                console.log("tblData.tableId", tblData.tableId)
+
+                                var updateSocket = function (usData) {
+                                    var allBotDataToSend = {};
+                                    // allBotDataToSend.botsPresent = tblData.bots;
+                                    allBotDataToSend.currentBotAdded = body.data;
+                                    allBotDataToSend.updatedSocketData = usData.data;
+                                    // console.log("body.data.memberId", body.data)
+                                    Bots.botGamePlay(body.data.memberId, allBotDataToSend);
+                                }
+                                socket.on("Update_" + tblData.tableId, updateSocket);
+
+                                //for side show
+
+                                var sideShowSocket = function (data) {
+                                    Bots.sideShowLogic(body.data.memberId, data.data);
+                                }
+                                socket.on("sideShow_" + tblData.tableId, sideShowSocket);
+
+                                //for remove 
+
+                                var removePlayerSocket = function (data) {
+                                    Bots.removePlayer(data.data);
+                                }
+                                socket.on("removePlayer_" + tblData.tableId, removePlayerSocket);
+
+                                //for show winnner
+
+                                var showWinnerSocket = function (data) {
+                                    Bots.removeBotAfterShowWinner(data.data);
+                                };
+                                socket.on("showWinner_" + tblData.tableId, showWinnerSocket);
+
+                                var m = global.allBots[indexValue];
+                                m.update = updateSocket;
+                                m.sideShow = sideShowSocket;
+                                m.removePlayer = removePlayerSocket;
+                                m.showWinner = showWinnerSocket;
+                                m.blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
+                                m.chalCount = 50;
+                                m.chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
+                                m.chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
+                                m.chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
+                                m.chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
+                                m.chalCountHC = 2;
+                                m.lastPotAmount = -1;
+                                // console.log("global.allBots[indexValue]", global.allBots[indexValue])
+                            }
                         });
                     }
-                },
-                //save tableId to respective bot
-                function (tabData, callback) {
-                    // console.log("tabData", tabData);
-                    var botsData = {};
-                    botsData = data.botDetails;
-                    botsData.table = tblData._id;
-                    Bots.saveData(botsData, callback);
-                },
-                // getAll Data from server table
-                function (getAllData, callback) {
-                    var dataToSend = {};
-                    // dataToSend.accessToken = data.botDetails.accessToken;
-                    dataToSend.tableId = data.tableDetails._id;
-                    request.post({
-                        url: global["env"].testIp + 'Player/getAll',
-                        body: dataToSend,
-                        json: true
-                    }, function (error, response, body) {
-                        // console.log("body-----", body.data);
-                        callback(error, body);
-                    });
-                },
-                //add bot to tableOnServer
-                function (finalData, callback) {
-                    // console.log("finalData", finalData.data.players);
-                    var arrNumber = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-                    var emptyPosition = [];
-                    emptyPosition = _.map(arrNumber, function (n) {
-                        var indx = _.findIndex(finalData.data.players, function (o) {
-                            return o.playerNo == n;
-                        });
-                        if (indx > -1) {
-                            return null
-                        } else {
-                            return n;
-                        };
-                    });
-
-                    var emptyNumArr = _.groupBy(emptyPosition, function (n) {
-                        return n != null
-                    });
-
-                    // console.log("emptyNumArr.true[0]", emptyNumArr.true[0]);
-                    // console.log(" tblData.tableId", tblData.tableId);
-                    // console.log("socketId", socketId);
-                    // console.log("data.botDetails.accessToken", data.botDetails.accessToken);
-
-                    request.post({
-                        url: global["env"].testIp + 'Table/addUserToTable',
-                        body: {
-                            playerNo: emptyNumArr.true[0],
-                            tableId: tblData.tableId,
-                            socketId: socketId,
-                            accessToken: data.botDetails.accessToken
-                        },
-                        json: true
-                    }, function (error, response, body) {
-                        var indexValue = _.findIndex(global.allBots, function (o) {
-                            return _.isEqual(o._id, data.botDetails._id);
-                        });
-
-                        callback(error, body);
-
-                        // console.log("body???????????????????", body);
-                        // console.log("error>>>>>>>>>>>>>>>>", error);
-
-                        if (body.data) {
-                            console.log("memberID", body.data.memberId)
-
-                            console.log("tblData.tableId", tblData.tableId)
-
-                            var updateSocket = function (usData) {
-                                var allBotDataToSend = {};
-                                // allBotDataToSend.botsPresent = tblData.bots;
-                                allBotDataToSend.currentBotAdded = body.data;
-                                allBotDataToSend.updatedSocketData = usData.data;
-                                // console.log("body.data.memberId", body.data)
-                                Bots.botGamePlay(body.data.memberId, allBotDataToSend);
-                            }
-                            socket.on("Update_" + tblData.tableId, updateSocket);
-
-                            //for side show
-
-                            var sideShowSocket = function (data) {
-                                Bots.sideShowLogic(body.data.memberId, data.data);
-                            }
-                            socket.on("sideShow_" + tblData.tableId, sideShowSocket);
-
-                            //for remove 
-
-                            var removePlayerSocket = function (data) {
-                                Bots.removePlayer(data.data);
-                            }
-                            socket.on("removePlayer_" + tblData.tableId, removePlayerSocket);
-
-                            //for show winnner
-
-                            var showWinnerSocket = function (data) {
-                                Bots.removeBotAfterShowWinner(data.data);
-                            };
-                            socket.on("showWinner_" + tblData.tableId, showWinnerSocket);
-
-                            var m = global.allBots[indexValue];
-                            m.update = updateSocket;
-                            m.sideShow = sideShowSocket;
-                            m.removePlayer = removePlayerSocket;
-                            m.showWinner = showWinnerSocket;
-                            m.blindCount = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
-                            m.chalCount = 50;
-                            m.chalCountPS = Math.floor(Math.random() * (12 - 8 + 1)) + 8;
-                            m.chalCountS = Math.floor(Math.random() * (8 - 5 + 1)) + 5;
-                            m.chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
-                            m.chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
-                            m.chalCountHC = 2;
-                            m.lastPotAmount = -1;
-                            // console.log("global.allBots[indexValue]", global.allBots[indexValue])
-                        }
-                    });
-                }
-            ],
-            callback);
-
+                ],
+                callback);
+        } else {
+            callback();
+        }
     },
 
     removeAllData: function (data, callback) {
