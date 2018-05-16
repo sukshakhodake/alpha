@@ -966,7 +966,7 @@ var model = {
                     // var n = botData[0];
                     // Bots.getTableInfo(n, callback)
                     // }, callback);
-                    console.log("getTableInfo", botData);
+                    // console.log("getTableInfo", botData);
                     Bots.getTableInfo(botData, callback);
                 }
             ],
@@ -1128,6 +1128,7 @@ var model = {
                             m.chalCountC = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
                             m.chalCountP = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
                             m.chalCountHC = 2;
+                            m.lastPotAmount = -1;
                             // console.log("global.allBots[indexValue]", global.allBots[indexValue])
                         }
                     });
