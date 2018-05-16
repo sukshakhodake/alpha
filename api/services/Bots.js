@@ -183,170 +183,6 @@ var model = {
         ], callback);
     },
 
-    /**
-     *  add bot to tables
-     * 
-     *  @param  {String} table data -   table data .      
-     *  @returns  {callback} callback -   Return table Data.
-     */
-    addBotToTable: function (data, callback) {
-        var botsData = {};
-        var accessToken;
-        async.waterfall([
-                //find a bot
-                function (callback) {
-                    Bots.findOne({
-                        $or: [{
-                            "table": {
-                                $exists: false
-                            }
-                        }, {
-                            table: null
-                        }]
-                    }).exec(callback);
-                },
-                //add bot to LocalsystmsDbTable
-                function (botData, callback) {
-                    console.log("botData", botData)
-                    if (botData || botData != null) {
-                        async.waterfall([
-                                //add bot to LocalsystmsDbTable
-                                function (callback) {
-                                    botsData = botData;
-                                    accessToken = botData.accessToken;
-                                    var tableDataToSave = {};
-                                    tableDataToSave.tableId = data._id;
-                                    tableDataToSave.json = data;
-                                    tableDataToSave.bots = [];
-                                    tableDataToSave.bots.push(botData._id);
-                                    tableDataToSave.status = "InUse";
-                                    Tables.saveData(tableDataToSave, callback);
-                                },
-                                //save tableId to respective bot
-                                function (tabData, callback) {
-                                    // console.log("tabData", tabData);
-                                    // console.log("botsData", botsData);
-                                    botsData.table = tabData._id;
-                                    Bots.saveData(botsData, callback);
-                                },
-                                // getAll Data from server table
-                                function (getAllData, callback) {
-                                    if (!_.isEmpty(accessToken)) {
-                                        var dataToSend = {};
-                                        dataToSend.accessToken = accessToken;
-                                        dataToSend.tableId = data._id;
-                                        request.post({
-                                            url: global["env"].testIp + 'Player/getAll',
-                                            body: dataToSend,
-                                            json: true
-                                        }, function (error, response, body) {
-                                            // console.log("body-----", body.data);
-                                            callback(error, body);
-                                        });
-                                    }
-                                },
-                                //add bot to tableOnServer
-                                function (finalData, callback) {
-                                    var arrNumber = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-                                    var emptyPosition = [];
-                                    emptyPosition = _.map(arrNumber, function (n) {
-                                        var indx = _.findIndex(finalData.data.players, function (o) {
-                                            return o.playerNo == n;
-                                        });
-                                        if (indx > -1) {
-                                            return null
-                                        } else {
-                                            return n;
-                                        };
-                                    });
-                                    if (emptyPosition[0] != null) {
-                                        request.post({
-                                            url: global["env"].testIp + 'Table/addUserToTable',
-                                            body: {
-                                                playerNo: emptyPosition[0],
-                                                tableId: data._id,
-                                                socketId: socketId,
-                                                accessToken: accessToken
-                                            },
-                                            json: true
-                                        }, function (error, response, body) {
-                                            // console.log("body-########----", body);
-                                            callback(error, body);
-                                        });
-                                    }
-                                }
-                            ],
-                            callback);
-                    } else {
-                        callback()
-                    }
-                }
-            ],
-            callback);
-    },
-
-
-    /**
-     *  remove bot from table Data
-     * 
-     *  @param  {String} table data -   table data.     
-     *  @returns  {callback} callback -   Return table Data.
-     */
-    removeBotFromTable: function (data, callback) {
-        var localTableData = {};
-        async.waterfall([
-                //find a tble from localDb
-                function (callback) {
-                    Tables.findOne({
-                        tableId: data._id
-                    }).deepPopulate('bots').exec(callback);
-                },
-                // remove bots from respective table on server
-                function (tabData, callback) {
-                    localTableData = tabData;
-                    console.log("tabData", localTableData);
-                    //remove from table
-                    async.eachSeries(tabData.bots, function (n, callback) {
-                        async.waterfall([
-                                function (callback) {
-                                    request.post({
-                                        url: global["env"].testIp + 'Player/deletePlayer',
-                                        body: {
-                                            tableId: tabData.tableId,
-                                            accessToken: n.accessToken
-                                        },
-                                        json: true
-                                    }, function (error, response, body) {
-                                        console.log("------------", body);
-                                        callback(error, body);
-                                    });
-                                },
-                                function (test, callback) {
-                                    Bots.findOne({
-                                        _id: n._id
-                                    }).exec(function (err, data1) {
-                                        console.log("-----------", data1)
-                                        var dataToRemove = {};
-                                        dataToRemove.table = '';
-                                        dataToRemove._id = data1._id;
-                                        console.log("------dataToRemove-----", dataToRemove)
-                                        Bots.saveData(dataToRemove, callback);
-                                    });
-                                }
-                            ],
-                            callback);
-                    }, callback);
-                },
-                function (test, callback) {
-                    console.log("botsdata", botsdata);
-                    Tables.delete({
-                        _id: localTableData._id
-                    }).exec(callback);
-                }
-            ],
-            callback);
-    },
-
 
     /**
      *  remove bot from table Data
@@ -370,6 +206,9 @@ var model = {
                 function (playersData, callback) {
                     var botsData = {};
                     async.eachLimit(playersData.data.players, 10, function (n, callback) {
+                        var indexValue = _.findIndex(global.allBots, function (o) {
+                            return _.isEqual(o.botId, n.memberId);
+                        });
                         async.waterfall([
                                 function (callback) {
                                     Bots.findOne({
@@ -401,6 +240,11 @@ var model = {
                                                     var dataToSave = {};
                                                     dataToSave._id = botsData._id;
                                                     dataToSave.table = null;
+                                                    socket.off("Update_" + data.localTableData.tableId, global.allBots[indexValue].update);
+                                                    socket.off("sideShow_" + data.localTableData.tableId, global.allBots[indexValue].sideShow);
+                                                    socket.off("removePlayer_" + data.localTableData.tableId, global.allBots[indexValue].removePlayer);
+                                                    socket.off("showWinner_" + data.localTableData.tableId, global.allBots[indexValue].showWinner);
+                                                    _.pullAt(global.allBots, indexValue);
                                                     Bots.saveData(dataToSave, callback);
                                                 }
                                             ],
@@ -532,7 +376,7 @@ var model = {
                                         socket.off("sideShow_" + data.localTableData.tableId, global.allBots[indexValue].sideShow);
                                         socket.off("removePlayer_" + data.localTableData.tableId, global.allBots[indexValue].removePlayer);
                                         socket.off("showWinner_" + data.localTableData.tableId, global.allBots[indexValue].showWinner);
-
+                                        _.pullAt(global.allBots, indexValue);
                                         var dataToSave = {};
                                         dataToSave._id = n._id;
                                         dataToSave.table = null;
@@ -1053,6 +897,9 @@ var model = {
      */
     removePlayer: function (data) {
         // console.log("removePlayerSocket--+++++++++++++", data);
+        var indexValue = _.findIndex(global.allBots, function (o) {
+            return _.isEqual(o.botId, data.memberId);
+        });
         var localData = {};
         async.waterfall([
                 function (callback) {
@@ -1080,6 +927,11 @@ var model = {
                     Bots.findOne({
                         botId: data.memberId
                     }).exec(function (err, data1) {
+                        socket.off("Update_" + data.localTableData.tableId, global.allBots[indexValue].update);
+                        socket.off("sideShow_" + data.localTableData.tableId, global.allBots[indexValue].sideShow);
+                        socket.off("removePlayer_" + data.localTableData.tableId, global.allBots[indexValue].removePlayer);
+                        socket.off("showWinner_" + data.localTableData.tableId, global.allBots[indexValue].showWinner);
+                        _.pullAt(global.allBots, indexValue);
                         var dataToRemove = {};
                         dataToRemove.table = null;
                         dataToRemove._id = data1._id;
@@ -1114,8 +966,7 @@ var model = {
                     // var n = botData[0];
                     // Bots.getTableInfo(n, callback)
                     // }, callback);
-                    // console.log("getTableInfo", botData);
-                    // iferr
+                    console.log("getTableInfo", botData);
                     Bots.getTableInfo(botData, callback);
                 }
             ],
@@ -1318,10 +1169,10 @@ var model = {
  *  @param  {String} id -   specific market symbol.
  *  @returns  {callback} callback -   Return cancel order details.
  */
-// cron.schedule('*/5 * * * * *', function () {
-//     console.log("-")
-//     model.searchForFreeBots();
-// });
+cron.schedule('*/5 * * * * *', function () {
+    console.log("******************cron****************")
+    model.searchForFreeBots();
+});
 
 
 socket.on('connect', function () {
