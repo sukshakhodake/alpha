@@ -214,50 +214,47 @@ var model = {
                             return _.isEqual(o.botId, n.memberId);
                         });
                         async.waterfall([
-                                function (callback) {
-                                    Bots.findOne({
-                                        botId: n.memberId
-                                    }).exec(callback);
-                                },
-                                function (botData, callback) {
-                                    botsData = botData;
-                                    async.waterfall([
-                                            function (callback) {
-                                                request.post({
-                                                    url: global["env"].testIp + 'Player/deletePlayer',
-                                                    body: {
-                                                        tableId: n.table,
-                                                        accessToken: botData.accessToken
-                                                    },
-                                                    json: true
-                                                }, function (error, response, body) {
-                                                    callback(error, body);
-                                                    // console.log("removeBotFromEmptyTable111", body)
-                                                });
+                            function (callback) {
+                                Bots.findOne({
+                                    botId: n.memberId
+                                }).exec(callback);
+                            },
+                            function (botData, callback) {
+                                botsData = botData;
+                                async.waterfall([
+                                    function (callback) {
+                                        request.post({
+                                            url: global["env"].testIp + 'Player/deletePlayer',
+                                            body: {
+                                                tableId: n.table,
+                                                accessToken: botData.accessToken
                                             },
-                                            function (tData, callback) {
-                                                Tables.deleteData({
-                                                    _id: botsData.table
-                                                }, callback);
-                                            },
-                                            function (tbData, callback) {
-                                                var dataToSave = {};
-                                                dataToSave._id = botsData._id;
-                                                dataToSave.table = null;
-                                                socket.off("Update_" + n.table, global.allBots[indexValue].update);
-                                                socket.off("sideShow_" + n.table, global.allBots[indexValue].sideShow);
-                                                socket.off("removePlayer_" + n.table, global.allBots[indexValue].removePlayer);
-                                                socket.off("showWinner_" + n.table, global.allBots[indexValue].showWinner);
-                                                _.pullAt(global.allBots, indexValue);
-                                                Bots.saveData(dataToSave, callback);
-                                                console.log("Last");
-                                            }
-                                        ],
-                                        callback);
-
-                                },
-                            ],
-                            callback);
+                                            json: true
+                                        }, function (error, response, body) {
+                                            callback(error, body);
+                                            // console.log("removeBotFromEmptyTable111", body)
+                                        });
+                                    },
+                                    function (tData, callback) {
+                                        Tables.deleteData({
+                                            _id: botsData.table
+                                        }, callback);
+                                    },
+                                    function (tbData, callback) {
+                                        var dataToSave = {};
+                                        dataToSave._id = botsData._id;
+                                        dataToSave.table = null;
+                                        socket.off("Update_" + n.table, global.allBots[indexValue].update);
+                                        socket.off("sideShow_" + n.table, global.allBots[indexValue].sideShow);
+                                        socket.off("removePlayer_" + n.table, global.allBots[indexValue].removePlayer);
+                                        socket.off("showWinner_" + n.table, global.allBots[indexValue].showWinner);
+                                        _.pullAt(global.allBots, indexValue);
+                                        Bots.saveData(dataToSave, callback);
+                                        console.log("Last");
+                                    }
+                                ], callback);
+                            },
+                        ], callback);
                     }, callback);
                 }
             ],
@@ -932,10 +929,10 @@ var model = {
                     Bots.findOne({
                         botId: data.memberId
                     }).exec(function (err, data1) {
-                        socket.off("Update_" + data.localTableData.tableId, global.allBots[indexValue].update);
-                        socket.off("sideShow_" + data.localTableData.tableId, global.allBots[indexValue].sideShow);
-                        socket.off("removePlayer_" + data.localTableData.tableId, global.allBots[indexValue].removePlayer);
-                        socket.off("showWinner_" + data.localTableData.tableId, global.allBots[indexValue].showWinner);
+                        socket.off("Update_" + data.table, global.allBots[indexValue].update);
+                        socket.off("sideShow_" + data.table, global.allBots[indexValue].sideShow);
+                        socket.off("removePlayer_" + data.table, global.allBots[indexValue].removePlayer);
+                        socket.off("showWinner_" + data.table, global.allBots[indexValue].showWinner);
                         _.pullAt(global.allBots, indexValue);
                         var dataToRemove = {};
                         dataToRemove.table = null;
