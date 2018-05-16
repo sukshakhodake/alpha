@@ -235,11 +235,6 @@ var model = {
                                             // console.log("removeBotFromEmptyTable111", body)
                                         });
                                     },
-                                    function (tData, callback) {
-                                        Tables.deleteData({
-                                            _id: botsData.table
-                                        }, callback);
-                                    },
                                     function (tbData, callback) {
                                         var dataToSave = {};
                                         dataToSave._id = botsData._id;
@@ -251,7 +246,12 @@ var model = {
                                         _.pullAt(global.allBots, indexValue);
                                         Bots.saveData(dataToSave, callback);
                                         console.log("Last");
-                                    }
+                                    },
+                                    function (tData, callback) {
+                                        Tables.deleteData({
+                                            _id: botsData.table
+                                        }, callback);
+                                    },
                                 ], callback);
                             },
                         ], callback1);
