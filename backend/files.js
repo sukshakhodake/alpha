@@ -19,7 +19,7 @@ module.exports = [
     'bower_components/angulartics/dist/angulartics.min.js',
     'bower_components/angulartics-google-analytics/dist/angulartics-ga.min.js',
     'bower_components/angular-ui-tinymce/src/tinymce.js',
-    'bower_components/angularjs-imageupload-directive/public/javascripts/imageupload.js',
+    // 'bower_components/angularjs-imageupload-directive/public/javascripts/imageupload.js',
     'bower_components/ngmap/build/scripts/ng-map.min.js',
     "bower_components/angular-bootstrap-toggle-switch/angular-toggle-switch.min.js",
     "bower_components/angular-toastr/dist/angular-toastr.js",

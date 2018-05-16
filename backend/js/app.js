@@ -4,7 +4,6 @@ var myApp = angular.module('myApp', [
     'pascalprecht.translate',
     'angulartics',
     'angulartics.google.analytics',
-    'imageupload',
     "ngMap",
     "internationalPhoneNumber",
     'ui.bootstrap',
