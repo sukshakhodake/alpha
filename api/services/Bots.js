@@ -250,9 +250,11 @@ var model = {
                 }, callback);
             },
             function (tData, callback) {
-                Tables.remove({
+                Tables.deleteData({
                     _id: botsData.table
-                }, callback);
+                }, function (err, delData) {
+                    callback();
+                });
             }
         ], callback);
     },
