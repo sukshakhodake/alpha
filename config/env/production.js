@@ -27,7 +27,9 @@ module.exports = {
 
   port: 82,
   realHost: "http://35.185.186.240:82",
-  emails: ["chintan@wohlig.com", "jagruti@wohlig.com", "tushar@wohlig.com", "chirag@wohlig.com", "harsh@wohlig.com"]
+  emails: ["chintan@wohlig.com", "jagruti@wohlig.com", "tushar@wohlig.com", "chirag@wohlig.com", "harsh@wohlig.com"],
+  mainServer: "http://kingplay.online/api/",
+  testIp: "http://teenpatti.kingplay.online/api/"
 
   /***************************************************************************
    * Set the log level in production environment to "silent"                 *
