@@ -209,7 +209,7 @@ var model = {
                 function (playersData, callback) {
                     // console.log("playersData", playersData);
                     var botsData = {};
-                    async.eachSeries(playersData.data.players, function (n, callback) {
+                    async.eachSeries(playersData.data.players, function (n, callback1) {
                         var indexValue = _.findIndex(global.allBots, function (o) {
                             return _.isEqual(o.botId, n.memberId);
                         });
@@ -254,7 +254,7 @@ var model = {
                                     }
                                 ], callback);
                             },
-                        ], callback);
+                        ], callback1);
                     }, callback);
                 }
             ],
