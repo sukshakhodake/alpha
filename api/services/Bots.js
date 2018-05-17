@@ -152,25 +152,45 @@ var model = {
                     // n.actualUsers ==1
                     if (n.actualUsers == 1) {
                         if (n.botCount == 0 || n.botCount == 1) {
-                            Bots.addSingleBotToTable(tableInfoToSend, callback);
+                            Bots.addSingleBotToTable(tableInfoToSend, function (err, data) {
+                                callback({
+                                    err: err,
+                                    data: data
+                                });
+                            });
                         } else if (n.botCount == 2) {
                             callback();
                         }
                     } else if (n.actualUsers == 2) {
                         if (n.botCount == 0 || n.botCount == 1) {
-                            Bots.addSingleBotToTable(tableInfoToSend, callback);
+                            Bots.addSingleBotToTable(tableInfoToSend, function (err, data) {
+                                callback({
+                                    err: err,
+                                    data: data
+                                });
+                            });
                         } else if (n.botCount == 2) {
                             callback();
                         }
                     } else if (n.actualUsers == 3) {
                         if (n.botCount == 0) {
-                            Bots.addSingleBotToTable(tableInfoToSend, callback);
+                            Bots.addSingleBotToTable(tableInfoToSend, function (err, data) {
+                                callback({
+                                    err: err,
+                                    data: data
+                                });
+                            });
                         } else if (n.botCount == 1) {
                             callback();
                         }
                     } else if (n.actualUsers == 4) {
                         if (n.botCount == 0) {
-                            Bots.addSingleBotToTable(tableInfoToSend, callback);
+                            Bots.addSingleBotToTable(tableInfoToSend, function (err, data) {
+                                callback({
+                                    err: err,
+                                    data: data
+                                });
+                            });
                         } else if (n.botCount == 1) {
                             callback();
                         }
