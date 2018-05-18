@@ -424,7 +424,7 @@ var model = {
         });
         console.log(isPlayer);
         var activePlayers = _.filter(data.updatedSocketData.players, function (m) {
-            return m.isActive;
+            return m.isActive && !m.isFold;
         }).length;
         console.log(activePlayers);
         var indexValue = _.findIndex(global.allBots, function (o) {
