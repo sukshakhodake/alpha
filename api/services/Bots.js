@@ -422,9 +422,11 @@ var model = {
         var isPlayer = _.find(data.updatedSocketData.players, function (m) {
             return m.memberId == playerId;
         });
+        console.log(isPlayer);
         var activePlayers = _.filter(data.updatedSocketData.players, function (m) {
             return m.isActive;
         }).length;
+        console.log(activePlayers);
         var indexValue = _.findIndex(global.allBots, function (o) {
             return _.isEqual(o.botId, playerId);
         });
