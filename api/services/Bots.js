@@ -422,6 +422,9 @@ var model = {
         var isPlayer = _.find(data.updatedSocketData.players, function (m) {
             return m.memberId == playerId;
         });
+        var activePlayers = _.filter(data.updatedSocketData.players, function (m) {
+            return m.isActive;
+        }).length;
         var indexValue = _.findIndex(global.allBots, function (o) {
             return _.isEqual(o.botId, playerId);
         });
@@ -505,7 +508,7 @@ var model = {
                                 dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
                                 dataToCheckCards.handNormal = teenPattiScore.scoreHandsNormal(isPlayer.cards);
                                 dataToCheckCards.indexValue = indexValue;
-                                Bots.checkCards(dataToCheckCards, function () {});
+                                Bots.checkCards(dataToCheckCards, function () {}, activePlayers);
                             } else if (data.updatedSocketData.gameType.evaluateFunc == 'scoreHandsTwo') {
                                 dataToCheckCards.botData = isPlayer;
                                 dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
@@ -513,7 +516,7 @@ var model = {
                                 dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
                                 dataToCheckCards.handNormal = teenPattiScore.scoreHandsTwo(isPlayer.cards);
                                 dataToCheckCards.indexValue = indexValue;
-                                Bots.checkCards(dataToCheckCards, function () {});
+                                Bots.checkCards(dataToCheckCards, function () {}, activePlayers);
                             } else if (data.updatedSocketData.gameType.evaluateFunc == 'scoreHandsFour') {
                                 dataToCheckCards.botData = isPlayer;
                                 dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
@@ -521,7 +524,7 @@ var model = {
                                 dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
                                 dataToCheckCards.handNormal = teenPattiScore.scoreHandsFour(isPlayer.cards);
                                 dataToCheckCards.indexValue = indexValue;
-                                Bots.checkCards(dataToCheckCards, function () {});
+                                Bots.checkCards(dataToCheckCards, function () {}, activePlayers);
                             } else if (data.updatedSocketData.gameType.evaluateFunc == 'scoreHandsLowest') {
                                 dataToCheckCards.botData = isPlayer;
                                 dataToCheckCards.minAmt = data.updatedSocketData.minAmt;
@@ -537,7 +540,7 @@ var model = {
                                 dataToCheckCards.accessToken = data.currentBotAdded.accessToken;
                                 dataToCheckCards.handNormal = teenPattiScore.scoreHandsJoker(isPlayer.cards);
                                 dataToCheckCards.indexValue = indexValue;
-                                Bots.checkCards(dataToCheckCards, function () {});
+                                Bots.checkCards(dataToCheckCards, function () {}, activePlayers);
                             }
                         }
                     }
@@ -553,7 +556,11 @@ var model = {
      *  @param  {String} bot  data -   bot gameplay data.     
      *  @returns  {callback} callback -   Return card data.
      */
-    checkCards: function (data, callback) {
+    checkCards: function (data, callback, activePlayers) {
+        var foldApi = "Player/fold";
+        if (activePlayers == 2) {
+            foldApi = "Player/showWinner";
+        }
         // console.log("checkCards+++++++++++++++++++++--", data)
         if (data.handNormal.name == 'Trio') {
             if (global.allBots[data.indexValue].chalCount > 0) {
@@ -576,7 +583,7 @@ var model = {
             } else {
                 setTimeout(function () {
                     request.post({
-                        url: global["env"].testIp + 'Player/showWinner',
+                        url: global["env"].testIp + foldApi,
                         body: {
                             tableId: data.botData.table,
                             accessToken: data.accessToken,
@@ -609,7 +616,7 @@ var model = {
             } else {
                 setTimeout(function () {
                     request.post({
-                        url: global["env"].testIp + 'Player/showWinner',
+                        url: global["env"].testIp + foldApi,
                         body: {
                             tableId: data.botData.table,
                             accessToken: data.accessToken,
@@ -641,7 +648,7 @@ var model = {
             } else {
                 setTimeout(function () {
                     request.post({
-                        url: global["env"].testIp + 'Player/showWinner',
+                        url: global["env"].testIp + foldApi,
                         body: {
                             tableId: data.botData.table,
                             accessToken: data.accessToken,
@@ -673,7 +680,7 @@ var model = {
             } else {
                 setTimeout(function () {
                     request.post({
-                        url: global["env"].testIp + 'Player/showWinner',
+                        url: global["env"].testIp + foldApi,
                         body: {
                             tableId: data.botData.table,
                             accessToken: data.accessToken,
@@ -705,7 +712,7 @@ var model = {
             } else {
                 setTimeout(function () {
                     request.post({
-                        url: global["env"].testIp + 'Player/showWinner',
+                        url: global["env"].testIp + foldApi,
                         body: {
                             tableId: data.botData.table,
                             accessToken: data.accessToken,
@@ -737,7 +744,7 @@ var model = {
             } else {
                 setTimeout(function () {
                     request.post({
-                        url: global["env"].testIp + 'Player/fold',
+                        url: global["env"].testIp + foldApi,
                         body: {
                             tableId: data.botData.table,
                             accessToken: data.accessToken,
