@@ -209,11 +209,11 @@ var model = {
                             callback();
                         }
                     } else if (n.actualUsers == 0) {
-                        if (n.botCount > 0) {
-                            Bots.removeBotFromEmptyTable(n, callback);
-                        } else if (n.botCount == 0) {
-                            callback();
-                        }
+                        // if (n.botCount > 0) {
+                        //     Bots.removeBotFromEmptyTable(n, callback);
+                        // } else if (n.botCount == 0) {
+                        //     callback();
+                        // }
                     } else {
                         callback();
                     }
@@ -302,7 +302,7 @@ var model = {
         var localTableData = {};
         var botsToRemove = {};
         var dataForRemoveBot = {};
-
+        // Check if the removeBot is set to true remove the bot.
         vshowWinnerPreviousPotAmt = -1;
         var showWinnerCurrentPotAmt = data.pot.totalAmount;
         if (global.showWinnerPreviousPotAmt != showWinnerCurrentPotAmt) {
@@ -1206,6 +1206,19 @@ var model = {
                 }
             ],
             callback);
+    },
+    removeBots: function (callback) {
+        async.waterfall([
+            function (callback) { // Get All Tables
+            },
+            function (callback) { // Get total number of Players and bots ,Calculate is Bot Number greater than required and set flags on each table if users are greater as number of bots to be removed. _.filter() of only table where bots has to be removed.
+
+            },
+            function (callback) { // (In async each) as per the number of bots to be removed, in the global bots array set randomly. Add Table Id in the remove bot Object as well.  but if bot is alone on a table remove it directly.
+
+            }
+        ], callback);
+        // Get All Tables
     }
 };
 
