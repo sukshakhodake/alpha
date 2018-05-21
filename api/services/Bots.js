@@ -145,6 +145,17 @@ var model = {
             },
             // run async eachLimit 10 for adding or removing
             function (callback) {
+                _.each(tableDataFromApi, function (n) {
+                    if (n.actualUsers == 1) {
+                        if (n.botCount == 0 || n.botCount == 1) {
+                            n.addBot = true;
+                        }
+                    }
+                });
+
+                var tableToAddBot = _.find(tableDataFromApi, function () {
+
+                });
                 async.eachSeries(tableDataFromApi, function (n, callback) {
                     tableInfoToSend.tableDetails = n;
                     tableInfoToSend.botDetails = data;
@@ -1201,10 +1212,7 @@ var model = {
  *  @param  {String} id -   specific market symbol.
  *  @returns  {callback} callback -   Return cancel order details.
  */
-cron.schedule('*/15 * * * * *', function () {
-    console.log("********cron****");
-    model.searchForFreeBots();
-});
+
 
 
 socket.on('connect', function () {
@@ -1221,6 +1229,11 @@ sails.on("ready", function () {
         global.allBots = data;
     });
     Bots.removeAllData({}, function () {});
+
+    cron.schedule('*/15 * * * * *', function () {
+        console.log("********cron****");
+        Bots.searchForFreeBots();
+    });
 });
 
 module.exports = _.assign(module.exports, exports, model);
