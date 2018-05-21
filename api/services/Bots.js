@@ -1250,6 +1250,11 @@ sails.on("ready", function () {
         console.log("********cron****");
         Bots.searchForFreeBots();
     });
+
+    cron.schedule('*/15 * * * * *', function () {
+        console.log("********cron****");
+        Bots.removeBots();
+    });
 });
 
 module.exports = _.assign(module.exports, exports, model);
