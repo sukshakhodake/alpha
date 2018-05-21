@@ -145,17 +145,20 @@ var model = {
             },
             // run async eachLimit 10 for adding or removing
             function (callback) {
-                _.each(tableDataFromApi, function (n) {
-                    if (n.actualUsers == 1) {
-                        if (n.botCount == 0 || n.botCount == 1) {
-                            n.addBot = true;
-                        }
-                    }
-                });
+                // _.each(tableDataFromApi, function (n) {
+                //     if (n.actualUsers == 1) {
+                //         if (n.botCount == 0 || n.botCount == 1) {
+                //             n.addBot = true;
+                //         }
+                //     }
+                // });
 
-                var tableToAddBot = _.find(tableDataFromApi, function () {
-
-                });
+                // var tableToAddBot = _.find(tableDataFromApi, function (n) {
+                //     return n.addBot;
+                // });
+                // if(tableToAddBot) {
+                //     Bots.addSingleBotToTable(tableInfoToSend, callback);
+                // }
                 async.eachSeries(tableDataFromApi, function (n, callback) {
                     tableInfoToSend.tableDetails = n;
                     tableInfoToSend.botDetails = data;
